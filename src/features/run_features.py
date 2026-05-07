@@ -43,9 +43,12 @@ def main():
     print(f"\nSelecting features...")
     selected_cols, df_final = select_features(df_feat)
 
-    # ── Save ─────────────────────────────────────────────────────────────────
+    # ── Save as parquet (fast) and CSV (guide requirement) ───────────────────
     df_final.to_parquet(OUTPUT_PATH, index=False)
+    csv_path = OUTPUT_DIR / "features.csv"
+    df_final.to_csv(csv_path, index=False)
     size_mb = OUTPUT_PATH.stat().st_size / 1_048_576
+    csv_mb  = csv_path.stat().st_size / 1_048_576
 
     # ── Summary ──────────────────────────────────────────────────────────────
     total_elapsed = time.time() - t0
@@ -55,6 +58,7 @@ def main():
     print(f"  Input  : {len(df):,} rows × {df.shape[1]} columns")
     print(f"  Output : {len(df_final):,} rows × {df_final.shape[1]} columns")
     print(f"  Saved  : {OUTPUT_PATH.name} ({size_mb:.0f} MB)")
+    print(f"  Saved  : {csv_path.name} ({csv_mb:.0f} MB)")
     print(f"\n  Kept features ({len(selected_cols)}):")
     for col in sorted(selected_cols):
         print(f"    {col}")

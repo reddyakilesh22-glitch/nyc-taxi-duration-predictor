@@ -82,6 +82,15 @@ def main():
     )
     print(f"  Train: {len(X_train):,}  |  Test: {len(X_test):,}")
 
+    # Sample for tuning — tune on 300k rows, train final model on full data.
+    # This is standard practice: hyperparameters that work on a representative
+    # sample generalise to the full dataset, and tuning is 7x faster.
+    TUNE_SAMPLE = 300_000
+    idx = np.random.default_rng(42).choice(len(X_train), TUNE_SAMPLE, replace=False)
+    X_tune = X_train.iloc[idx]
+    y_tune = y_train.iloc[idx]
+    print(f"  Tuning sample: {len(X_tune):,} rows (full train used for final fit)")
+
     # ── Optuna Search ────────────────────────────────────────────────────────
     print(f"\nRunning Optuna hyperparameter search (30 trials)...")
     print("  Each trial = one set of hyperparameters evaluated with 5-fold CV")
@@ -89,7 +98,7 @@ def main():
 
     study = optuna.create_study(direction="maximize")
     study.optimize(
-        lambda trial: objective(trial, X_train, y_train),
+        lambda trial: objective(trial, X_tune, y_tune),
         n_trials=30,
         show_progress_bar=True,
     )

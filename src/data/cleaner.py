@@ -134,10 +134,14 @@ if __name__ == "__main__":
 
     cleaned_df, quality_result = clean_data(raw_df)
 
-    # Save
+    # Save as parquet (fast, compressed) and CSV (guide requirement)
     cleaned_df.to_parquet(output_file, index=False)
+    csv_file = CLEANED_DIR / "cleaned.csv"
+    cleaned_df.to_csv(csv_file, index=False)
     size_mb = output_file.stat().st_size / 1_048_576
+    csv_mb  = csv_file.stat().st_size / 1_048_576
     print(f"\nSaved cleaned data → {output_file.name} ({size_mb:.0f} MB)")
+    print(f"Saved cleaned data → {csv_file.name} ({csv_mb:.0f} MB)")
 
     # Show quality gate on cleaned data
     print_result(quality_result)

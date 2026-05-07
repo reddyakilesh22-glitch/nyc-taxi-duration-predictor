@@ -70,7 +70,8 @@ def objective(trial, X_train, y_train):
 
     model = lgb.LGBMRegressor(**params)
     kf = KFold(n_splits=5, shuffle=True, random_state=42)
-    scores = cross_val_score(model, X_train, y_train, cv=kf, scoring="r2", n_jobs=-1)
+    # n_jobs=1 here to avoid nested parallelism crash on macOS (LightGBM already uses all cores internally)
+    scores = cross_val_score(model, X_train, y_train, cv=kf, scoring="r2", n_jobs=1)
     return scores.mean()
 
 

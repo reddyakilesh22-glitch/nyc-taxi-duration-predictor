@@ -1,0 +1,81 @@
+{
+  "models": [
+    {
+      "name": "Linear Regression",
+      "r2": 0.589,
+      "mae_sec": 363.75,
+      "mae_min": 6.1,
+      "rmse_log": 0.4461,
+      "description": "Baseline \u2014 straight-line relationships only",
+      "winner": false
+    },
+    {
+      "name": "Ridge Regression",
+      "r2": 0.591,
+      "mae_sec": 361.2,
+      "mae_min": 6.0,
+      "rmse_log": 0.444,
+      "description": "Linear + L2 regularization for correlated features",
+      "winner": false
+    },
+    {
+      "name": "LightGBM (default)",
+      "r2": 0.9778,
+      "mae_sec": 59.16,
+      "mae_min": 1.0,
+      "rmse_log": 0.1037,
+      "description": "Gradient boosted trees \u2014 captures non-linear patterns",
+      "winner": false
+    },
+    {
+      "name": "LightGBM (tuned)",
+      "r2": 0.981,
+      "mae_sec": 54.0,
+      "mae_min": 0.9,
+      "rmse_log": 0.098,
+      "description": "Tuned with 30 Optuna trials, 5-fold CV on 300k sample",
+      "winner": true
+    }
+  ],
+  "feature_importances": {
+    "VendorID": 1032,
+    "passenger_count": 318,
+    "trip_distance": 7994,
+    "RatecodeID": 1640,
+    "PULocationID": 11013,
+    "DOLocationID": 13625,
+    "payment_type": 502,
+    "extra": 1068,
+    "mta_tax": 242,
+    "tip_amount": 4543,
+    "tolls_amount": 485,
+    "congestion_surcharge": 331,
+    "Airport_fee": 127,
+    "hour": 1933,
+    "day_of_week": 1623,
+    "hour_sin": 1227,
+    "hour_cos": 1494,
+    "dow_sin": 856,
+    "dow_cos": 461,
+    "is_am_rush": 82,
+    "is_pm_rush": 121,
+    "is_rush_hour": 237,
+    "is_weekend": 54,
+    "is_late_night": 83,
+    "is_pu_manhattan": 21,
+    "is_do_manhattan": 19,
+    "is_airport_trip": 177,
+    "is_same_zone": 626,
+    "is_both_manhattan": 32,
+    "fare_per_mile": 9392,
+    "distance_x_rush": 1046,
+    "distance_x_night": 596
+  },
+  "stats": {
+    "total_trips": 2687584,
+    "n_features": 32,
+    "best_r2": 0.981,
+    "best_mae_min": 0.9,
+    "baseline_mae_min": 6.1
+  }
+}

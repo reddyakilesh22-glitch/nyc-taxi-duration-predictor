@@ -704,26 +704,29 @@ def page_models():
             badge  = '<span class="winner-badge">⭐ WINNER</span>' if winner else ""
             bg     = "#fffbea" if winner else "#fff"
             border = "2px solid #F7C948" if winner else "1px solid #eee"
-            st.markdown(f"""
-            <div style="background:{bg}; border:{border}; border-radius:8px; padding:14px 18px; margin-bottom:10px;">
-                <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <div>
-                        <span style="font-weight:700; font-size:16px; color:#1a1a2e;">{m['name']}</span>
-                        {badge}
-                    </div>
-                    <div style="text-align:right;">
-                        <span style="font-size:20px; font-weight:800; color:{GREEN if winner else DARK_NAVY};">
-                            R² = {m['r2']:.3f}
-                        </span>
-                    </div>
-                </div>
-                <div style="color:#666; font-size:13px; margin-top:4px;">{m['description']}</div>
-                <div style="display:flex; gap:24px; margin-top:8px;">
-                    <span style="font-size:13px;"><b>MAE:</b> {m['mae_min']:.1f} min</span>
-                    <span style="font-size:13px;"><b>RMSE (log):</b> {m['rmse_log']:.3f}</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+            r2_color = GREEN if winner else DARK_NAVY
+            card_html = (
+                f'<div style="background:{bg}; border:{border}; border-radius:8px; '
+                f'padding:14px 18px; margin-bottom:10px;">'
+                f'<div style="display:flex; justify-content:space-between; align-items:center;">'
+                f'<div>'
+                f'<span style="font-weight:700; font-size:16px; color:#1a1a2e;">{m["name"]}</span>'
+                f'{badge}'
+                f'</div>'
+                f'<div style="text-align:right;">'
+                f'<span style="font-size:20px; font-weight:800; color:{r2_color};">'
+                f'R² = {m["r2"]:.3f}'
+                f'</span>'
+                f'</div>'
+                f'</div>'
+                f'<div style="color:#666; font-size:13px; margin-top:4px;">{m["description"]}</div>'
+                f'<div style="display:flex; gap:24px; margin-top:8px;">'
+                f'<span style="font-size:13px;"><b>MAE:</b> {m["mae_min"]:.1f} min</span>'
+                f'<span style="font-size:13px;"><b>RMSE (log):</b> {m["rmse_log"]:.3f}</span>'
+                f'</div>'
+                f'</div>'
+            )
+            st.markdown(card_html, unsafe_allow_html=True)
 
     with col2:
         colors = [GREEN if m.get("winner") else (TAXI_YELLOW if "LightGBM" in m["name"] else "#bbb")

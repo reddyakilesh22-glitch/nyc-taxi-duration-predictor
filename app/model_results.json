@@ -5,35 +5,26 @@
       "r2": 0.589,
       "mae_sec": 363.75,
       "mae_min": 6.1,
-      "rmse_log": 0.4461,
+      "rmse_log": 0.446,
       "description": "Baseline \u2014 straight-line relationships only",
       "winner": false
     },
     {
       "name": "Ridge Regression",
-      "r2": 0.591,
-      "mae_sec": 361.2,
-      "mae_min": 6.0,
-      "rmse_log": 0.444,
-      "description": "Linear + L2 regularization for correlated features",
+      "r2": 0.589,
+      "mae_sec": 363.75,
+      "mae_min": 6.1,
+      "rmse_log": 0.446,
+      "description": "Linear + L2 regularization (similar to baseline here)",
       "winner": false
     },
     {
-      "name": "LightGBM (default)",
-      "r2": 0.9778,
+      "name": "LightGBM",
+      "r2": 0.978,
       "mae_sec": 59.16,
       "mae_min": 1.0,
-      "rmse_log": 0.1037,
+      "rmse_log": 0.104,
       "description": "Gradient boosted trees \u2014 captures non-linear patterns",
-      "winner": false
-    },
-    {
-      "name": "LightGBM (tuned)",
-      "r2": 0.981,
-      "mae_sec": 54.0,
-      "mae_min": 0.9,
-      "rmse_log": 0.098,
-      "description": "Tuned with 30 Optuna trials, 5-fold CV on 300k sample",
       "winner": true
     }
   ],
@@ -74,8 +65,8 @@
   "stats": {
     "total_trips": 2687584,
     "n_features": 32,
-    "best_r2": 0.981,
-    "best_mae_min": 0.9,
+    "best_r2": 0.978,
+    "best_mae_min": 1.0,
     "baseline_mae_min": 6.1
   }
 }

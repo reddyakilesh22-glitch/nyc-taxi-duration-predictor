@@ -27,23 +27,30 @@ st.set_page_config(
 )
 
 PROJECT_ROOT = Path(__file__).parent.parent
+APP_DIR      = Path(__file__).parent
 
 TAXI_YELLOW  = "#F7C948"
 DARK_NAVY    = "#1a1a2e"
-CHARCOAL     = "#2C3E50"
 GREEN        = "#27AE60"
 RED          = "#E74C3C"
-LIGHT_GREY   = "#F8F9FA"
 PLOTLY_THEME = "plotly_white"
+
+CATEGORICAL_FEATURES = ["PULocationID", "DOLocationID", "RatecodeID",
+                         "VendorID", "payment_type", "day_of_week"]
 
 # ── CSS ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-/* Sidebar */
-[data-testid="stSidebar"] {
+/* Sidebar background only — let Streamlit's default text colors handle
+   selected vs. unselected states for the radio buttons */
+[data-testid="stSidebar"] > div:first-child {
     background: #1a1a2e;
 }
-[data-testid="stSidebar"] * {
+[data-testid="stSidebar"] .stRadio label p,
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3,
+[data-testid="stSidebar"] hr {
     color: #ffffff !important;
 }
 
@@ -69,7 +76,7 @@ st.markdown("""
     border-radius: 12px;
     margin-bottom: 28px;
 }
-.hero h1 { font-size: 48px; font-weight: 900; margin: 0; line-height: 1.1; }
+.hero h1 { font-size: 48px; font-weight: 900; margin: 0; line-height: 1.1; color: white;}
 .hero .subtitle { font-size: 20px; color: #F7C948; margin-top: 12px; font-weight: 500; }
 .hero .desc { font-size: 16px; color: #b0b8d0; margin-top: 16px; max-width: 600px; line-height: 1.6; }
 
@@ -115,6 +122,7 @@ st.markdown("""
     padding: 2px 8px;
     font-size: 12px;
     font-weight: 700;
+    margin-left: 8px;
 }
 
 /* Prediction result */
@@ -125,7 +133,7 @@ st.markdown("""
     border-radius: 12px;
     text-align: center;
 }
-.pred-result .time { font-size: 56px; font-weight: 900; color: #F7C948; }
+.pred-result .time { font-size: 56px; font-weight: 900; color: #F7C948; line-height: 1; }
 .pred-result .label { font-size: 16px; color: #b0b8d0; margin-top: 4px; }
 
 /* Footer */
@@ -187,19 +195,19 @@ POPULAR_ZONES = {
     "Greenwich Village North":     103,
     "Soho":                        211,
     "Tribeca / Civic Center":      246,
-    "Astoria (Queens)":            9,
+    "Astoria (Queens)":             7,
     "Williamsburg (Brooklyn)":     261,
-    "Crown Heights (Brooklyn)":    61,
-    "Harlem":                      74,
+    "Crown Heights (Brooklyn)":     61,
+    "Harlem":                       74,
     "Washington Heights":          152,
     "Lower East Side":             148,
     "Murray Hill":                 170,
 }
 ZONE_NAMES = list(POPULAR_ZONES.keys())
+DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
 
 # ── Data Loading ──────────────────────────────────────────────────────────────
-APP_DIR = Path(__file__).parent
-
 @st.cache_data
 def load_model_results():
     path = APP_DIR / "model_results.json"
@@ -224,7 +232,7 @@ def load_feature_sample(n=20_000):
             "fare_per_mile", "is_rush_hour", "is_weekend",
             "is_pu_manhattan", "is_airport_trip",
         ])
-        return df.sample(n=min(n, len(df)), random_state=42)
+        return df.sample(n=min(n, len(df)), random_state=42).reset_index(drop=True)
     return _demo_feature_sample(n)
 
 @st.cache_resource
@@ -234,18 +242,17 @@ def load_model():
         return joblib.load(path)
     return None
 
+
 def _demo_model_results():
-    rng = np.random.default_rng(42)
     return {
         "models": [
             {"name": "Linear Regression", "r2": 0.589, "mae_sec": 363.75, "mae_min": 6.1, "rmse_log": 0.446, "description": "Baseline — straight-line relationships only", "winner": False},
             {"name": "Ridge Regression",  "r2": 0.591, "mae_sec": 361.2,  "mae_min": 6.0, "rmse_log": 0.444, "description": "Linear + L2 regularization", "winner": False},
-            {"name": "LightGBM (default)","r2": 0.978, "mae_sec": 59.16,  "mae_min": 1.0, "rmse_log": 0.104, "description": "Gradient boosted trees", "winner": False},
-            {"name": "LightGBM (tuned)",  "r2": 0.981, "mae_sec": 54.0,   "mae_min": 0.9, "rmse_log": 0.098, "description": "Tuned with 30 Optuna trials", "winner": True},
+            {"name": "LightGBM (default)","r2": 0.978, "mae_sec": 59.16,  "mae_min": 1.0, "rmse_log": 0.104, "description": "Gradient boosted trees", "winner": True},
         ],
         "feature_importances": {"DOLocationID": 13625, "PULocationID": 11013, "fare_per_mile": 9392,
                                   "trip_distance": 7994, "tip_amount": 4543, "hour": 1933},
-        "stats": {"total_trips": 2687584, "n_features": 32, "best_r2": 0.981, "best_mae_min": 0.9, "baseline_mae_min": 6.1},
+        "stats": {"total_trips": 2687584, "n_features": 32, "best_r2": 0.978, "best_mae_min": 1.0, "baseline_mae_min": 6.1},
     }
 
 def _demo_predictions():
@@ -271,7 +278,7 @@ def _demo_feature_sample(n):
         "duration_sec": duration, "trip_distance": rng.exponential(2.5, n).clip(0.1,30),
         "hour": hour, "day_of_week": rng.integers(0, 7, n),
         "fare_per_mile": rng.uniform(2, 12, n),
-        "is_rush_hour": ((hour >= 7) & (hour <= 9) | (hour >= 16) & (hour <= 19)).astype(int),
+        "is_rush_hour": (((hour >= 7) & (hour <= 9)) | ((hour >= 16) & (hour <= 19))).astype(int),
         "is_weekend": rng.integers(0, 2, n), "is_pu_manhattan": rng.integers(0, 2, n),
         "is_airport_trip": rng.integers(0, 2, n),
     })
@@ -333,7 +340,6 @@ def page_overview():
     results = load_model_results()
     stats   = results["stats"]
 
-    # Hero
     st.markdown("""
     <div class="hero">
         <div style="font-size:14px; color:#F7C948; font-weight:700; letter-spacing:2px; margin-bottom:8px;">
@@ -349,7 +355,6 @@ def page_overview():
     </div>
     """, unsafe_allow_html=True)
 
-    # KPI cards
     st.markdown('<div class="section-header">Key Numbers</div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
 
@@ -366,7 +371,7 @@ def page_overview():
         <div class="kpi-card">
             <div class="kpi-label">Features Engineered</div>
             <div class="kpi-value">{stats['n_features']}</div>
-            <div class="kpi-delta">from 15 raw columns</div>
+            <div class="kpi-delta">from 19 raw columns</div>
         </div>""", unsafe_allow_html=True)
 
     with c3:
@@ -374,7 +379,7 @@ def page_overview():
         <div class="kpi-card">
             <div class="kpi-label">Model Accuracy (R²)</div>
             <div class="kpi-value">{stats['best_r2']:.3f}</div>
-            <div class="kpi-delta">explains 98.1% of trip variation</div>
+            <div class="kpi-delta">explains {stats['best_r2']*100:.1f}% of trip variation</div>
         </div>""", unsafe_allow_html=True)
 
     with c4:
@@ -382,13 +387,12 @@ def page_overview():
         st.markdown(f"""
         <div class="kpi-card">
             <div class="kpi-label">Avg Error (MAE)</div>
-            <div class="kpi-value">~1 min</div>
+            <div class="kpi-value">~{stats['best_mae_min']:.0f} min</div>
             <div class="kpi-delta">↑ {improvement:.0f}% better than baseline</div>
         </div>""", unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # What this does + Tech stack
     col_left, col_right = st.columns([3, 2])
 
     with col_left:
@@ -406,10 +410,10 @@ def page_overview():
 
         st.markdown('<br><div class="section-header">Pipeline Overview</div>', unsafe_allow_html=True)
         pipeline_data = pd.DataFrame({
-            "Stage": ["Data Cleaning", "Feature Engineering", "Model Training", "Hyperparameter Tuning"],
-            "Input": ["2.96M raw rows", "2.69M clean rows", "32 features", "LightGBM model"],
-            "Output": ["2.69M clean rows", "32 engineered features", "3 models compared", "Best params (30 trials)"],
-            "Key Result": ["Removed 9.3% bad data", "20 → 32 features", "R² 0.589 → 0.978", "R² 0.978 → 0.981"],
+            "Stage":      ["Data Cleaning", "Feature Engineering", "Model Comparison", "Hyperparameter Tuning"],
+            "Input":      ["2.96M raw rows", "2.69M clean rows",   "32 features",       "Best LightGBM"],
+            "Output":     ["2.69M clean rows","32 engineered features","3 trained models", "Tuned hyperparameters"],
+            "Key Result": ["Removed 9.3% bad", "20 → 32 features",  "R² 0.589 → 0.978",  "30 Optuna trials"],
         })
         st.dataframe(pipeline_data, use_container_width=True, hide_index=True)
 
@@ -428,18 +432,19 @@ def page_overview():
             st.markdown("")
 
         st.markdown('<br><div class="section-header">Model Performance</div>', unsafe_allow_html=True)
+        models = results["models"]
         fig = go.Figure(go.Bar(
-            x=["Baseline\n(Linear)", "Ridge", "LightGBM\n(default)", "LightGBM\n(tuned)"],
-            y=[6.1, 6.0, 1.0, 0.9],
-            marker_color=[RED, RED, TAXI_YELLOW, GREEN],
-            text=["6.1 min", "6.0 min", "1.0 min", "0.9 min"],
+            x=[m["name"].replace(" ", "<br>") for m in models],
+            y=[m["mae_min"] for m in models],
+            marker_color=[GREEN if m.get("winner") else (TAXI_YELLOW if "LightGBM" in m["name"] else RED) for m in models],
+            text=[f"{m['mae_min']:.1f} min" for m in models],
             textposition="outside",
         ))
         fig.update_layout(
             title="MAE by Model (lower = better)",
             yaxis_title="Mean Absolute Error (minutes)",
             template=PLOTLY_THEME,
-            height=260,
+            height=280,
             margin=dict(t=40, b=10, l=10, r=10),
             showlegend=False,
         )
@@ -452,7 +457,7 @@ def page_explore():
     df = load_feature_sample()
 
     st.markdown('<h2 style="color:#1a1a2e;">📊 Explore the Data</h2>', unsafe_allow_html=True)
-    st.caption("Based on 20,000 randomly sampled trips from January 2024")
+    st.caption(f"Based on {len(df):,} randomly sampled trips from January 2024")
 
     tab1, tab2, tab3, tab4 = st.tabs([
         "🕐 Duration Distribution", "⏰ Time Patterns", "🗺️ Location Insights", "🔗 Correlations"
@@ -463,19 +468,28 @@ def page_explore():
         col1, col2 = st.columns([2, 1])
 
         with col1:
-            log_toggle = st.checkbox("Use log scale (log₁ₓ duration)", value=True,
-                                     help="Log scale is what the model actually trains on — compresses the long tail")
-            durations = np.log1p(df["duration_sec"]) if log_toggle else df["duration_sec"] / 60
+            log_toggle = st.checkbox(
+                "Apply log transform (what the model trains on)",
+                value=False,
+                help="The raw distribution is right-skewed. Log compresses the long tail so the model focuses on typical trips."
+            )
+            if log_toggle:
+                durations = np.log1p(df["duration_sec"])
+                title = "Trip Duration Distribution — log(1 + seconds)"
+                xlabel = "log(1 + duration_sec)"
+            else:
+                durations = df["duration_sec"] / 60
+                title = "Trip Duration Distribution — minutes"
+                xlabel = "Duration (minutes)"
 
             fig = px.histogram(
                 x=durations,
                 nbins=80,
                 color_discrete_sequence=[TAXI_YELLOW],
-                labels={"x": "log(duration)" if log_toggle else "Duration (minutes)"},
-                title="Trip Duration Distribution" + (" — Log Scale" if log_toggle else " — Raw (minutes)"),
+                labels={"x": xlabel},
+                title=title,
             )
-            fig.update_layout(template=PLOTLY_THEME, height=380, showlegend=False,
-                              margin=dict(t=50, b=20))
+            fig.update_layout(template=PLOTLY_THEME, height=380, showlegend=False, margin=dict(t=50, b=20))
             st.plotly_chart(fig, use_container_width=True)
 
         with col2:
@@ -489,11 +503,11 @@ def page_explore():
             st.markdown("<br>", unsafe_allow_html=True)
             st.markdown("""
             <div class="callout">
-                <div class="callout-title">Why Log Scale?</div>
+                <div class="callout-title">Why Log Transform?</div>
                 <div class="callout-body">
                     The raw distribution is right-skewed — a few 3-hour trips
-                    would distort training. Log transform compresses the tail
-                    so the model focuses on typical trips, not rare outliers.
+                    would dominate training. Log compresses the tail so the model
+                    learns from typical trips, not rare outliers. Toggle to compare.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -512,32 +526,34 @@ def page_explore():
                 markers=True,
                 color_discrete_sequence=[DARK_NAVY],
             )
-            fig.add_vrect(x0=7, x1=9,   fillcolor=TAXI_YELLOW, opacity=0.15, annotation_text="AM Rush")
-            fig.add_vrect(x0=16, x1=19, fillcolor=TAXI_YELLOW, opacity=0.15, annotation_text="PM Rush")
+            fig.add_vrect(x0=7, x1=9,   fillcolor=TAXI_YELLOW, opacity=0.15,
+                          annotation_text="AM Rush", annotation_position="top left")
+            fig.add_vrect(x0=16, x1=19, fillcolor=TAXI_YELLOW, opacity=0.15,
+                          annotation_text="PM Rush", annotation_position="top right")
             fig.update_layout(template=PLOTLY_THEME, height=340, margin=dict(t=50, b=20))
             st.plotly_chart(fig, use_container_width=True)
 
             st.markdown("""
             <div class="callout">
-                <div class="callout-title">Rush Hour adds 3–4 minutes</div>
+                <div class="callout-title">Rush hour shifts the curve</div>
                 <div class="callout-body">
-                    The same route takes 3–4 minutes longer at 8am vs 3am.
-                    This is why hour is the 6th most important feature in the model.
+                    Average duration rises ~3 minutes from early morning (3am)
+                    to mid-afternoon (3–4pm). The PM rush peak is taller
+                    than the AM peak.
                 </div>
             </div>
             """, unsafe_allow_html=True)
 
         with col2:
-            day_labels = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
             avg_by_dow = df.groupby("day_of_week")["duration_sec"].mean().div(60).reset_index()
-            avg_by_dow["Day"] = avg_by_dow["day_of_week"].map(dict(enumerate(day_labels)))
+            avg_by_dow["Day"] = avg_by_dow["day_of_week"].map(dict(enumerate(DAYS)))
+            avg_by_dow = avg_by_dow.rename(columns={"duration_sec": "Avg Duration (min)"})
 
             fig = px.bar(
-                avg_by_dow, x="Day", y="duration_sec",
+                avg_by_dow, x="Day", y="Avg Duration (min)",
                 title="Average Duration by Day of Week",
-                color="duration_sec",
+                color="Avg Duration (min)",
                 color_continuous_scale=[[0, TAXI_YELLOW], [1, DARK_NAVY]],
-                labels={"duration_sec": "Avg Duration (min)"},
             )
             fig.update_layout(template=PLOTLY_THEME, height=340, margin=dict(t=50, b=20),
                               coloraxis_showscale=False)
@@ -545,11 +561,11 @@ def page_explore():
 
             st.markdown("""
             <div class="callout">
-                <div class="callout-title">Weekdays run longer</div>
+                <div class="callout-title">Weekday vs weekend gap</div>
                 <div class="callout-body">
-                    Friday PM has the longest average trips. Weekends
-                    are shorter — less commuter traffic, more leisure rides
-                    close to home.
+                    Mid-week trips run noticeably longer than weekend trips —
+                    commuter traffic stretches the curve. Sunday is the shortest
+                    day on average.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -559,17 +575,12 @@ def page_explore():
         col1, col2 = st.columns(2)
 
         with col1:
-            route_types = []
-            for _, row in df.iterrows():
-                if row.get("is_airport_trip", 0):
-                    route_types.append("Airport Trip")
-                elif row.get("is_pu_manhattan", 0):
-                    route_types.append("Manhattan Pickup")
-                else:
-                    route_types.append("Other Boroughs")
             df_plot = df.copy()
-            df_plot["Route Type"] = route_types
             df_plot["duration_min"] = df_plot["duration_sec"] / 60
+            df_plot["Route Type"] = np.where(
+                df_plot["is_airport_trip"] == 1, "Airport Trip",
+                np.where(df_plot["is_pu_manhattan"] == 1, "Manhattan Pickup", "Other Boroughs")
+            )
 
             fig = px.box(
                 df_plot.sample(min(5000, len(df_plot)), random_state=42),
@@ -582,6 +593,7 @@ def page_explore():
                     "Other Boroughs": DARK_NAVY,
                 },
                 labels={"duration_min": "Duration (minutes)"},
+                category_orders={"Route Type": ["Airport Trip", "Manhattan Pickup", "Other Boroughs"]},
             )
             fig.update_layout(template=PLOTLY_THEME, height=360, margin=dict(t=50, b=20),
                               showlegend=False)
@@ -590,15 +602,15 @@ def page_explore():
         with col2:
             df_plot2 = df.sample(min(3000, len(df)), random_state=42).copy()
             df_plot2["duration_min"] = df_plot2["duration_sec"] / 60
-            df_plot2["Rush Hour"] = df_plot2["is_rush_hour"].map({1: "Rush Hour", 0: "Off-Peak"})
+            df_plot2["Time of Day"] = np.where(df_plot2["is_rush_hour"] == 1, "Rush Hour", "Off-Peak")
 
             fig = px.scatter(
                 df_plot2,
                 x="trip_distance", y="duration_min",
-                color="Rush Hour",
+                color="Time of Day",
                 color_discrete_map={"Rush Hour": RED, "Off-Peak": DARK_NAVY},
                 opacity=0.4,
-                title="Distance vs Duration (Rush Hour vs Off-Peak)",
+                title="Distance vs Duration",
                 labels={"trip_distance": "Distance (miles)", "duration_min": "Duration (minutes)"},
                 trendline="ols",
             )
@@ -607,11 +619,12 @@ def page_explore():
 
         st.markdown("""
         <div class="callout">
-            <div class="callout-title">Key Finding: Same distance, very different time</div>
+            <div class="callout-title">Same distance — different time</div>
             <div class="callout-body">
-                The scatter plot shows two separate trend lines for rush hour vs off-peak —
-                at the same distance, rush hour trips consistently take longer. This is exactly
-                why the interaction feature <code>distance × rush_hour</code> made it into the model.
+                The two trend lines diverge: at the same distance, rush hour trips
+                consistently take longer than off-peak trips. This is exactly
+                why the interaction feature <code>distance × rush_hour</code> made
+                it into the model.
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -630,31 +643,42 @@ def page_explore():
         fig = px.imshow(
             corr,
             text_auto=True,
-            color_continuous_scale=[[0, "#EBF5FB"], [0.5, "#F7C948"], [1, DARK_NAVY]],
+            color_continuous_scale="RdBu_r",
+            color_continuous_midpoint=0,
+            zmin=-1, zmax=1,
             title="Correlation Matrix — Key Features vs Duration",
             aspect="auto",
         )
-        fig.update_layout(template=PLOTLY_THEME, height=420, margin=dict(t=50, b=20))
+        fig.update_layout(template=PLOTLY_THEME, height=440, margin=dict(t=50, b=20))
         st.plotly_chart(fig, use_container_width=True)
+
+        # Compute actual correlations to use in callouts (no hardcoded numbers)
+        corr_dist     = corr.loc["Distance",    "Duration"]
+        corr_fare     = corr.loc["Fare/Mile",   "Duration"]
+        corr_airport  = corr.loc["Airport Trip","Duration"]
 
         col1, col2 = st.columns(2)
         with col1:
-            st.markdown("""
+            st.markdown(f"""
             <div class="callout">
-                <div class="callout-title">Strong: Distance → Duration (0.67)</div>
+                <div class="callout-title">Strongest signal: Distance → Duration ({corr_dist:+.2f})</div>
                 <div class="callout-body">
-                    Longer trips take longer — but not perfectly. Rush hour breaks
-                    the linear relationship, which is why a tree model beats linear regression.
+                    Longer trips take longer — but not perfectly linearly.
+                    Rush hour and zone effects break the straight-line relationship,
+                    which is why a tree model beats linear regression.
                 </div>
             </div>
             """, unsafe_allow_html=True)
         with col2:
-            st.markdown("""
+            direction = "negatively" if corr_fare < 0 else "positively"
+            st.markdown(f"""
             <div class="callout">
-                <div class="callout-title">Moderate: Fare/Mile → Duration (0.41)</div>
+                <div class="callout-title">Surprising: Fare/Mile → Duration ({corr_fare:+.2f})</div>
                 <div class="callout-body">
-                    A high fare-per-mile means the meter ran mostly on time (slow trip).
-                    A low fare-per-mile means the car covered ground fast (highway).
+                    Fare-per-mile is {direction} correlated with duration.
+                    Long highway trips have low fare/mile (fast). Short city
+                    trips have high fare/mile (meter on time). The model uses
+                    this as a congestion proxy.
                 </div>
             </div>
             """, unsafe_allow_html=True)
@@ -669,11 +693,9 @@ def page_models():
 
     st.markdown('<h2 style="color:#1a1a2e;">🏆 Model Results</h2>', unsafe_allow_html=True)
 
-    # Comparison table
     st.markdown('<div class="section-header">Model Comparison</div>', unsafe_allow_html=True)
 
     models = results["models"]
-    df_models = pd.DataFrame(models)
 
     col1, col2 = st.columns([3, 2])
     with col1:
@@ -690,7 +712,7 @@ def page_models():
                         {badge}
                     </div>
                     <div style="text-align:right;">
-                        <span style="font-size:20px; font-weight:800; color:{'#27AE60' if winner else '#1a1a2e'};">
+                        <span style="font-size:20px; font-weight:800; color:{GREEN if winner else DARK_NAVY};">
                             R² = {m['r2']:.3f}
                         </span>
                     </div>
@@ -704,10 +726,9 @@ def page_models():
             """, unsafe_allow_html=True)
 
     with col2:
-        fig = go.Figure()
-        colors = [GREEN if m.get("winner") else (TAXI_YELLOW if "LightGBM" in m["name"] else "#ccc")
+        colors = [GREEN if m.get("winner") else (TAXI_YELLOW if "LightGBM" in m["name"] else "#bbb")
                   for m in models]
-        fig.add_trace(go.Bar(
+        fig = go.Figure(go.Bar(
             x=[m["name"].replace(" ", "<br>") for m in models],
             y=[m["r2"] for m in models],
             marker_color=colors,
@@ -715,8 +736,9 @@ def page_models():
             textposition="outside",
         ))
         fig.update_layout(
-            title="R² Score by Model", yaxis_title="R² Score",
-            yaxis=dict(range=[0.5, 1.02]),
+            title="R² Score by Model",
+            yaxis_title="R² Score",
+            yaxis=dict(range=[0.5, 1.05]),
             template=PLOTLY_THEME, height=340,
             margin=dict(t=50, b=10, l=10, r=10), showlegend=False,
         )
@@ -736,7 +758,6 @@ def page_models():
 
     st.divider()
 
-    # Feature importance + Residuals
     col_imp, col_res = st.columns(2)
 
     with col_imp:
@@ -757,36 +778,36 @@ def page_models():
         st.plotly_chart(fig, use_container_width=True)
 
     with col_res:
-        st.markdown('<div class="section-header">Prediction Accuracy (Residuals)</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">Predicted vs Actual</div>', unsafe_allow_html=True)
 
+        sample_pred = predictions.sample(min(2000, len(predictions)), random_state=42)
         fig = px.scatter(
-            predictions.sample(min(2000, len(predictions)), random_state=42),
+            sample_pred,
             x="actual_min", y="predicted_min",
             opacity=0.4,
             color_discrete_sequence=[DARK_NAVY],
             labels={"actual_min": "Actual Duration (min)", "predicted_min": "Predicted Duration (min)"},
-            title="Predicted vs Actual Trip Duration",
+            title="Predicted vs Actual Trip Duration (test set)",
         )
-        max_val = max(predictions["actual_min"].max(), predictions["predicted_min"].max())
+        max_val = max(sample_pred["actual_min"].max(), sample_pred["predicted_min"].max())
         fig.add_shape(type="line", x0=0, y0=0, x1=max_val, y1=max_val,
                       line=dict(color=TAXI_YELLOW, width=2, dash="dash"))
-        fig.add_annotation(x=max_val*0.7, y=max_val*0.85, text="Perfect prediction",
+        fig.add_annotation(x=max_val*0.7, y=max_val*0.9, text="Perfect prediction",
                            showarrow=False, font=dict(color=TAXI_YELLOW, size=11))
         fig.update_layout(template=PLOTLY_THEME, height=440, margin=dict(t=50, b=20))
         st.plotly_chart(fig, use_container_width=True)
 
     st.divider()
 
-    # Try it yourself
     st.markdown('<div class="section-header">🎯 Try It Yourself — Live Prediction</div>', unsafe_allow_html=True)
 
     if prod_bundle is None:
-        st.warning("Model file not found. Run `python src/models/run_training.py` first.")
+        st.warning("Model file not found. Run `python src/models/run_training.py` first to enable live predictions.")
+        _footer()
         return
 
     model        = prod_bundle["model"]
     feature_cols = prod_bundle["feature_cols"]
-    CATEGORICAL_FEATURES = ["PULocationID", "DOLocationID", "RatecodeID", "VendorID", "payment_type", "day_of_week"]
 
     col_form, col_result = st.columns([2, 1])
 
@@ -807,11 +828,14 @@ def page_models():
         with c5:
             hour = st.slider("Pickup Hour (0 = midnight)", 0, 23, 8)
         with c6:
-            dow_label = st.selectbox("Day of Week", ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"])
-            dow = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].index(dow_label)
+            dow_label = st.selectbox("Day of Week", DAYS)
+            dow = DAYS.index(dow_label)
 
-        fare_est = st.slider("Estimated Fare ($)", 5.0, 100.0, float(2.5 + distance * 2.5), 0.5,
-                             help="Base rate ≈ $2.50 + $2.50/mile. Used to compute fare-per-mile signal.")
+        fare_est = st.slider(
+            "Estimated Fare ($)", 5.0, 100.0,
+            float(round(2.5 + distance * 2.5, 1)), 0.5,
+            help="Base rate ≈ $2.50 + $2.50/mile. Used to compute the fare-per-mile congestion signal."
+        )
 
     with col_result:
         pu_id = POPULAR_ZONES[pu_name]
@@ -824,44 +848,57 @@ def page_models():
                 input_df[col] = input_df[col].astype("category")
 
         pred_log = model.predict(input_df)[0]
-        pred_sec = np.expm1(pred_log)
+        pred_sec = float(np.expm1(pred_log))
         pred_min = pred_sec / 60
-        pred_h   = int(pred_min // 60)
-        pred_m   = int(pred_min % 60)
 
-        time_str = f"{pred_h}h {pred_m}m" if pred_h > 0 else f"{pred_m}m"
+        if pred_min >= 60:
+            h = int(pred_min // 60)
+            m = int(round(pred_min - h * 60))
+            time_str = f"{h}h {m}m"
+            sub_str  = f"{pred_min:.0f} minutes total"
+        else:
+            time_str = f"{pred_min:.1f} min"
+            sub_str  = f"≈ {int(round(pred_sec))} seconds"
 
-        rush_label = ""
         if 7 <= hour <= 9 and dow < 5:
-            rush_label = "⚠️ AM Rush — expect delays"
+            context_label = "⚠️ AM Rush — expect delays"
         elif 16 <= hour <= 19 and dow < 5:
-            rush_label = "⚠️ PM Rush — expect delays"
+            context_label = "⚠️ PM Rush — expect delays"
         elif hour >= 22 or hour <= 5:
-            rush_label = "🌙 Late night — roads are clear"
-        airport_label = "✈️ Airport trip detected" if (pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES) else ""
+            context_label = "🌙 Late night — roads are clear"
+        else:
+            context_label = "✓ Off-peak hours"
+
+        airport_label = "✈️ Airport trip" if (pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES) else ""
+
+        extras_html = f'<div style="margin-top:14px; font-size:13px; color:#F7C948;">{context_label}</div>'
+        if airport_label:
+            extras_html += f'<div style="margin-top:4px; font-size:13px; color:#b0b8d0;">{airport_label}</div>'
 
         st.markdown(f"""
         <div class="pred-result">
             <div class="label">Estimated Trip Duration</div>
             <div class="time">{time_str}</div>
-            <div class="label" style="margin-top:8px; font-size:14px;">
-                {f'{pred_min:.1f} minutes' if pred_h == 0 else f'{pred_min:.0f} minutes total'}
-            </div>
-            {'<div style="margin-top:12px; font-size:13px; color:#F7C948;">' + rush_label + '</div>' if rush_label else ''}
-            {'<div style="margin-top:6px; font-size:13px; color:#b0b8d0;">' + airport_label + '</div>' if airport_label else ''}
+            <div class="label" style="margin-top:6px; font-size:14px;">{sub_str}</div>
+            {extras_html}
         </div>
         """, unsafe_allow_html=True)
 
         st.markdown("<br>", unsafe_allow_html=True)
         st.markdown("**Top factors in this prediction:**")
-        zone_match = "Same zone — very short trip!" if pu_id == do_id else f"{distance:.1f} miles"
-        factors = [
-            ("📍 Route", zone_match),
-            ("⏰ Time", f"{'Rush hour' if (7<=hour<=9 or 16<=hour<=19) and dow<5 else 'Off-peak'} ({hour:02d}:00)"),
-            ("🗺️ Area",  f"{'Manhattan' if pu_id in MANHATTAN_ZONES else 'Outer borough'} pickup"),
-        ]
-        for icon_label, detail in factors:
-            st.markdown(f"- **{icon_label}:** {detail}")
+        if pu_id == do_id:
+            route_str = "🔁 Same zone — very short trip"
+        else:
+            pu_loc = "Manhattan" if pu_id in MANHATTAN_ZONES else "Outer borough"
+            do_loc = "Manhattan" if do_id in MANHATTAN_ZONES else "Outer borough"
+            route_str = f"{pu_loc} → {do_loc}, {distance:.1f} miles"
+
+        time_str_factor = f"{'Rush hour' if (7<=hour<=9 or 16<=hour<=19) and dow<5 else 'Off-peak'}, {dow_label} {hour:02d}:00"
+
+        st.markdown(f"- **📍 Route:** {route_str}")
+        st.markdown(f"- **⏰ Time:** {time_str_factor}")
+        if pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES:
+            st.markdown(f"- **✈️ Airport leg:** uses highway → faster per mile")
 
     _footer()
 
@@ -878,21 +915,21 @@ def page_how_built():
             rankdir=LR;
             node [shape=box, style="filled,rounded", fontname="Arial", fontsize=11]
 
-            raw  [label="Raw TLC Data\\n(2.96M rows)", fillcolor="#E8EAF6"]
-            clean[label="Data Cleaning\\ncleaner.py", fillcolor="#F7C948"]
-            feat [label="Feature Engineering\\nengineering.py", fillcolor="#F7C948"]
-            train[label="Model Training\\nrun_training.py", fillcolor="#F7C948"]
-            tune [label="Optuna Tuning\\ntuning.py", fillcolor="#F7C948"]
-            mlf  [label="MLflow Tracking", fillcolor="#E8F5E9"]
-            prod [label="Production Model\\n(LightGBM R²=0.981)", fillcolor="#27AE60", fontcolor="white"]
-            app  [label="Streamlit App\\n(this dashboard)", fillcolor="#1a1a2e", fontcolor="white"]
+            raw   [label="Raw TLC Data\\n(2.96M rows)", fillcolor="#E8EAF6"]
+            clean [label="Data Cleaning\\ncleaner.py", fillcolor="#F7C948"]
+            feat  [label="Feature Engineering\\nengineering.py", fillcolor="#F7C948"]
+            train [label="Model Training\\nrun_training.py", fillcolor="#F7C948"]
+            tune  [label="Optuna Tuning\\ntuning.py", fillcolor="#F7C948"]
+            mlf   [label="MLflow Tracking", fillcolor="#E8F5E9"]
+            prod  [label="Production Model\\n(LightGBM)", fillcolor="#27AE60", fontcolor="white"]
+            app   [label="Streamlit App\\n(this dashboard)", fillcolor="#1a1a2e", fontcolor="white"]
 
-            raw  -> clean [label=" 9.3%\\nremoved"]
-            clean -> feat [label=" 32\\nfeatures"]
+            raw   -> clean [label=" 9.3% removed"]
+            clean -> feat  [label=" 32 features"]
             feat  -> train
-            train -> mlf  [style=dashed]
+            train -> mlf   [style=dashed]
             train -> tune
-            tune  -> prod [label=" best\\nparams"]
+            tune  -> prod  [label=" best params"]
             prod  -> app
         }
         """)
@@ -902,18 +939,18 @@ def page_how_built():
         timeline = [
             ("Day 1", "Data Exploration & Quality Gate",
              "Downloaded 2.96M NYC taxi trips. Built automated quality checks — schema validation, "
-             "null rates, range checks. Cleaned data to 2.69M rows by removing impossible values "
+             "null rates, range checks. Cleaned to 2.69M rows by removing impossible values "
              "(negative fares, 300k-mile trips, sub-60-second rides)."),
             ("Day 2", "Exploratory Data Analysis",
              "Built a 7-section EDA notebook. Key discovery: trip duration is right-skewed, "
              "requiring log transform. Rush hour adds 3–4 minutes for the same route. "
-             "These findings directly shaped the feature engineering strategy."),
+             "These findings shaped the feature engineering strategy."),
             ("Day 3", "Feature Engineering",
              "Engineered 32 features across 3 categories: temporal (cyclic hour/day encoding, "
              "rush hour flags), geospatial (Manhattan/airport zones, same-zone trips), "
              "and interaction (distance × rush hour). Feature selection dropped 5 redundant columns."),
             ("Day 4", "Model Training & Tuning",
-             "Compared LinearRegression (MAE=6.1min), Ridge (MAE=6.0min), and LightGBM (MAE=1.0min) "
+             "Compared LinearRegression (MAE 6.1min), Ridge (MAE 6.0min), and LightGBM (MAE 1.0min) "
              "with 5-fold cross-validation. MLflow logged all runs. Optuna searched 30 hyperparameter "
              "combinations using Bayesian optimization on a 300k sample."),
             ("Day 5", "Portfolio App",
@@ -966,16 +1003,14 @@ def page_how_built():
             "9.3% of taxi data is unusable — quality gates aren't optional",
         ]
         for l in lessons:
-            st.markdown(f"• {l}")
+            st.markdown(f"- {l}")
 
         st.markdown('<br><div class="section-header">Data Source</div>', unsafe_allow_html=True)
         st.markdown("""
-        **NYC TLC Trip Record Data**
-        NYC Taxi & Limousine Commission
+**NYC TLC Trip Record Data** — NYC Taxi & Limousine Commission
 
-        January 2024 Yellow Taxi trips
-        — 2,964,624 raw records
-        — Available at nyc.gov/tlc
+January 2024 Yellow Taxi trips (2,964,624 raw records).
+Available at [nyc.gov/tlc](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
         """)
 
     _footer()
@@ -1000,7 +1035,7 @@ def main():
             <div style="font-size:18px; font-weight:800; color:#F7C948; margin-top:6px;">
                 NYC Taxi Predictor
             </div>
-            <div style="font-size:12px; color:#888; margin-top:4px;">ML Portfolio Project</div>
+            <div style="font-size:12px; color:#aaa; margin-top:4px;">ML Portfolio Project</div>
         </div>
         """, unsafe_allow_html=True)
 
@@ -1014,18 +1049,18 @@ def main():
 
         st.markdown("---")
         st.markdown("""
-        <div style="font-size:12px; color:#888; padding: 8px 0;">
-            <b style="color:#F7C948;">Model:</b> LightGBM (tuned)<br>
-            <b style="color:#F7C948;">R²:</b> 0.981<br>
-            <b style="color:#F7C948;">MAE:</b> ~1 min<br>
-            <b style="color:#F7C948;">Data:</b> 2.69M trips<br>
+        <div style="font-size:12px; color:#ccc; padding: 8px 0; line-height: 1.7;">
+            <span style="color:#F7C948; font-weight:700;">Model:</span> LightGBM<br>
+            <span style="color:#F7C948; font-weight:700;">R²:</span> 0.978<br>
+            <span style="color:#F7C948; font-weight:700;">MAE:</span> ~1 min<br>
+            <span style="color:#F7C948; font-weight:700;">Data:</span> 2.69M trips<br>
         </div>
         """, unsafe_allow_html=True)
 
-    if "Overview"    in page: page_overview()
-    elif "Explore"   in page: page_explore()
-    elif "Model"     in page: page_models()
-    elif "Built"     in page: page_how_built()
+    if   "Overview" in page: page_overview()
+    elif "Explore"  in page: page_explore()
+    elif "Model"    in page: page_models()
+    elif "Built"    in page: page_how_built()
 
 
 if __name__ == "__main__":

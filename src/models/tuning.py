@@ -93,7 +93,7 @@ def main():
     print(f"  Tuning sample: {len(X_tune):,} rows (full train used for final fit)")
 
     # ── Optuna Search ────────────────────────────────────────────────────────
-    print(f"\nRunning Optuna hyperparameter search (30 trials)...")
+    print("\nRunning Optuna hyperparameter search (30 trials)...")
     print("  Each trial = one set of hyperparameters evaluated with 5-fold CV")
     t0 = time.time()
 
@@ -107,7 +107,7 @@ def main():
     elapsed = time.time() - t0
     print(f"\nSearch complete in {elapsed/60:.1f} minutes")
     print(f"  Best CV R²  : {study.best_value:.4f}")
-    print(f"  Best params :")
+    print("  Best params :")
     for k, v in study.best_params.items():
         print(f"    {k:<25} {v}")
 
@@ -118,7 +118,7 @@ def main():
     print(f"\n  Saved best params → {params_path.name}")
 
     # ── Train Final Model With Best Params ───────────────────────────────────
-    print(f"\nTraining final model with best hyperparameters...")
+    print("\nTraining final model with best hyperparameters...")
     best_params = {**study.best_params, "verbose": -1, "n_jobs": -1}
     final_model = lgb.LGBMRegressor(**best_params)
     final_model.fit(X_train, y_train)
@@ -139,7 +139,7 @@ def main():
     print(f"  RMSE (log)     : {test_rmse:.4f}")
     print(f"  R²   (log)     : {test_r2:.4f}")
     print(f"{'='*45}")
-    print(f"\n  Baseline was: MAE=363.8s (6.1min), R²=0.5890")
+    print("\n  Baseline was: MAE=363.8s (6.1min), R²=0.5890")
     improvement = (test_mae - 363.8) / 363.8 * 100
     print(f"  MAE change   : {improvement:+.1f}%")
 

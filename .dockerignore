@@ -1,0 +1,44 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python build artifacts
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+.pytest_cache
+build
+dist
+
+# Virtual envs
+.venv
+venv
+env
+
+# IDE / OS
+.vscode
+.idea
+.DS_Store
+
+# Data and runs (mounted via volumes, not baked into image)
+data
+models
+mlruns
+
+# Notebooks and notes (not needed at runtime)
+notebooks
+notes
+*.ipynb_checkpoints
+
+# Tests aren't needed in the production image
+tests
+
+# Docker / build files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Documentation
+README.md

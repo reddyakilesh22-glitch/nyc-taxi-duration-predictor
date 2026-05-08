@@ -196,12 +196,12 @@ def select_features(df: pd.DataFrame) -> tuple[list[str], pd.DataFrame]:
         selected.append("duration_sec")
 
     # Report
-    print(f"\nFeature selection:")
+    print("\nFeature selection:")
     print(f"  Started with : {len(numeric_cols)} features")
     print(f"  Dropped      : {len(dropped)}")
     print(f"  Kept         : {len(selected)}")
     if dropped:
-        print(f"\n  Dropped features:")
+        print("\n  Dropped features:")
         for col, reason in dropped.items():
             print(f"    - {col}: {reason}")
 
@@ -223,13 +223,13 @@ if __name__ == "__main__":
     print(f"\nFeatures created in {elapsed:.1f}s")
     print(f"  Before: {df.shape[1]} columns")
     print(f"  After : {df_feat.shape[1]} columns")
-    print(f"\nNew columns added:")
+    print("\nNew columns added:")
     new_cols = [c for c in df_feat.columns if c not in df.columns]
     for col in new_cols:
         sample_vals = df_feat[col].dropna().head(3).tolist()
         print(f"  {col:<25} sample: {sample_vals}")
 
-    print(f"\nChecking data integrity:")
+    print("\nChecking data integrity:")
     inf_count = np.isinf(df_feat.select_dtypes(include="number")).sum().sum()
     null_count = df_feat.isnull().sum().sum()
     print(f"  Infinite values: {inf_count}")

@@ -1,0 +1,18 @@
+services:
+  app:
+    build: .
+    image: nyc-taxi-duration:latest
+    container_name: nyc-taxi-app
+    ports:
+      - "8501:8501"
+    volumes:
+      # Mount data and models from host so the container sees real artifacts
+      # without baking them into the image. Read-only — the app never writes here.
+      - ./data:/app/data:ro
+      - ./models:/app/models:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/_stcore/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3

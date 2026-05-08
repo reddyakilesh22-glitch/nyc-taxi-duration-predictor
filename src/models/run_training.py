@@ -108,8 +108,8 @@ def main():
 
     print(f"MLflow tracking URI : {MLFLOW_TRACKING_URI}")
     print(f"Experiment          : {EXPERIMENT_NAME}")
-    print(f"\nTo view runs: mlflow server --host 127.0.0.1 --port 5000")
-    print(f"Then open   : http://localhost:5000\n")
+    print("\nTo view runs: mlflow server --host 127.0.0.1 --port 5000")
+    print("Then open   : http://localhost:5000\n")
 
     print("Loading features...")
     X, y = load_features()
@@ -189,9 +189,9 @@ def main():
     print(f"{'='*60}")
     df_res = pd.DataFrame(all_results)
     print(df_res.sort_values("r2", ascending=False).to_string(index=False))
-    print(f"\nAll runs logged to MLflow — run:")
-    print(f"  mlflow server --host 127.0.0.1 --port 5000")
-    print(f"  open http://localhost:5000")
+    print("\nAll runs logged to MLflow — run:")
+    print("  mlflow server --host 127.0.0.1 --port 5000")
+    print("  open http://localhost:5000")
 
 
 if __name__ == "__main__":

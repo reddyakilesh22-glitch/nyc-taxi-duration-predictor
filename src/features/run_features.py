@@ -28,19 +28,19 @@ def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     # ── Load ─────────────────────────────────────────────────────────────────
-    print(f"Loading cleaned data...")
+    print("Loading cleaned data...")
     t0 = time.time()
     df = pd.read_parquet(CLEANED_PATH)
     print(f"  {len(df):,} rows × {df.shape[1]} columns  ({time.time()-t0:.1f}s)")
 
     # ── Engineer ─────────────────────────────────────────────────────────────
-    print(f"\nEngineering features...")
+    print("\nEngineering features...")
     t1 = time.time()
     df_feat = create_features(df)
     print(f"  {df.shape[1]} → {df_feat.shape[1]} columns  ({time.time()-t1:.1f}s)")
 
     # ── Select ───────────────────────────────────────────────────────────────
-    print(f"\nSelecting features...")
+    print("\nSelecting features...")
     selected_cols, df_final = select_features(df_feat)
 
     # ── Save as parquet (fast) and CSV (guide requirement) ───────────────────

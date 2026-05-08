@@ -110,7 +110,7 @@ def main():
     X_test_lgb  = X_lgb.iloc[X_test.index]
 
     print(f"  Train: {len(X_train):,}  |  Test: {len(X_test):,}")
-    print(f"\nWhy these 3 models:")
+    print("\nWhy these 3 models:")
     print("  LinearRegression — baseline, fast, interpretable, assumes linear relationships")
     print("  Ridge            — adds L2 penalty to prevent overfitting on correlated features")
     print("  LightGBM         — gradient boosted trees, captures non-linear patterns,")

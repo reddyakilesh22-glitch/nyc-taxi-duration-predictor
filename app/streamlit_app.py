@@ -359,7 +359,7 @@ def page_overview():
     c1, c2, c3, c4 = st.columns(4)
 
     with c1:
-        st.markdown(f"""
+        st.markdown("""
         <div class="kpi-card">
             <div class="kpi-label">Trips Analyzed</div>
             <div class="kpi-value">2.69M</div>
@@ -653,9 +653,8 @@ def page_explore():
         st.plotly_chart(fig, use_container_width=True)
 
         # Compute actual correlations to use in callouts (no hardcoded numbers)
-        corr_dist     = corr.loc["Distance",    "Duration"]
-        corr_fare     = corr.loc["Fare/Mile",   "Duration"]
-        corr_airport  = corr.loc["Airport Trip","Duration"]
+        corr_dist = corr.loc["Distance",  "Duration"]
+        corr_fare = corr.loc["Fare/Mile", "Duration"]
 
         col1, col2 = st.columns(2)
         with col1:
@@ -901,7 +900,7 @@ def page_models():
         st.markdown(f"- **📍 Route:** {route_str}")
         st.markdown(f"- **⏰ Time:** {time_str_factor}")
         if pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES:
-            st.markdown(f"- **✈️ Airport leg:** uses highway → faster per mile")
+            st.markdown("- **✈️ Airport leg:** uses highway → faster per mile")
 
     _footer()
 

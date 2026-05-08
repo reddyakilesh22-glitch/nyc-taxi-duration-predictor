@@ -109,7 +109,7 @@ def inspect_key_columns(df: pd.DataFrame):
         ).dt.total_seconds()
 
         duration_min = df["duration_sec"] / 60
-        print(f"\n  Trip Duration (minutes):")
+        print("\n  Trip Duration (minutes):")
         print(f"    Min    : {duration_min.min():.1f}")
         print(f"    Median : {duration_min.median():.1f}")
         print(f"    Mean   : {duration_min.mean():.1f}")
@@ -117,14 +117,14 @@ def inspect_key_columns(df: pd.DataFrame):
         print(f"    Negative durations : {(df['duration_sec'] < 0).sum():,}  ← should be 0")
 
     if "trip_distance" in df.columns:
-        print(f"\n  Trip Distance (miles):")
+        print("\n  Trip Distance (miles):")
         print(f"    Min    : {df['trip_distance'].min():.2f}")
         print(f"    Median : {df['trip_distance'].median():.2f}")
         print(f"    Max    : {df['trip_distance'].max():.2f}")
         print(f"    Zero or negative : {(df['trip_distance'] <= 0).sum():,}  ← should be 0")
 
     if "PULocationID" in df.columns:
-        print(f"\n  Pickup Zone IDs (valid range: 1–263):")
+        print("\n  Pickup Zone IDs (valid range: 1–263):")
         print(f"    Unique zones  : {df['PULocationID'].nunique()}")
         print(f"    Out-of-range  : {(~df['PULocationID'].between(1, 263)).sum():,}")
 

@@ -48,7 +48,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df["duration_sec"] = (
         df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]
     ).dt.total_seconds()
-    print(f"\nStep 1 — Computed duration_sec from timestamps")
+    print("\nStep 1 — Computed duration_sec from timestamps")
 
     # ── Step 2: Drop rows where target is null or invalid ───────────────────
     # A row with no duration is useless for a duration-prediction model.
@@ -107,12 +107,12 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df["RatecodeID"]     = df["RatecodeID"].astype("int8")
     df["payment_type"]   = df["payment_type"].astype("int8")
     df["passenger_count"]= df["passenger_count"].astype("int8")
-    print(f"Step 6 — Enforced compact data types")
+    print("Step 6 — Enforced compact data types")
 
     # ── Summary ───────────────────────────────────────────────────────────────
     final_rows = len(df)
     total_removed = original_rows - final_rows
-    print(f"\nCleaning complete:")
+    print("\nCleaning complete:")
     print(f"  Before : {original_rows:,} rows")
     print(f"  After  : {final_rows:,} rows")
     print(f"  Removed: {total_removed:,} rows ({total_removed/original_rows*100:.1f}%)")

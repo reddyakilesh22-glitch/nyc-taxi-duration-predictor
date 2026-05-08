@@ -1,4 +1,4 @@
-# Days 1–4 Explained — Plain English
+# Days 1–5 Explained — Plain English
 
 ---
 
@@ -508,15 +508,199 @@ Each leaf of the tree represents a rule: "trips under 3 miles, in Manhattan, aft
 **`feature_fraction = 0.6–1.0`**
 Each tree only looks at a random subset of features. This forces the model to learn diverse patterns instead of always relying on the same 2–3 strong features. It's the same idea as not putting all your eggs in one basket.
 
+### The honest result of our tuning
+
+After 3 hours of tuning (30 trials × 5-fold CV on 300k rows), the result was:
+
+```
+Default LightGBM:  R² = 0.9778,  MAE = 59.16s
+Tuned LightGBM:    R² = 0.9774,  MAE = 59.50s
+```
+
+The tuned model was **slightly worse** on the test set. The default hyperparameters were already near-optimal for this data.
+
+**Why this matters:** This is a real lesson, not a failure. Tuning is not always worth the cost. Good default settings + good features will beat fancy tuning on bad features almost every time. We document this in the portfolio because hiring managers respect honesty about what didn't work, not just success stories.
+
 ---
 
-# The Through-Line Across All Four Days
+# Day 5 — Building the Portfolio App
+
+## What Were We Actually Doing?
+
+Up to Day 4, your model lived inside a `.pkl` file on your laptop. It worked, but only you could use it. To anyone else — a hiring manager, a friend, a future you in 6 months — your project was just a folder of Python files.
+
+**Day 5 turned the model into a website.**
+
+Specifically: a 4-page interactive dashboard where anyone with the URL can click around, see the data, see the results, and most importantly — **type in their own taxi route and get a prediction in real time**.
+
+Think of it like the difference between writing a recipe in a notebook vs. opening a restaurant. Same dish; very different reach.
+
+---
+
+## What is Streamlit?
+
+Streamlit is a Python library that turns scripts into web apps. You write Python — no HTML, no JavaScript, no React — and Streamlit renders it as a website in your browser.
+
+**Before Streamlit:**
+```
+Want a chart on a website?
+1. Learn HTML, CSS, JavaScript
+2. Set up a frontend build tool
+3. Wire up a backend API
+4. Deploy to a server
+5. ... (3 weeks later, finally see your chart)
+```
+
+**With Streamlit:**
+```python
+import streamlit as st
+import plotly.express as px
+
+st.title("My Chart")
+st.plotly_chart(px.line(df, x="hour", y="duration"))
+```
+
+Run `streamlit run app.py` and you have a live website. That's the whole pitch.
+
+---
+
+## The 4 Pages and What Each One Does
+
+The app is structured like a portfolio website, not a dashboard. Each page answers a specific question someone visiting your project would have.
+
+### Page 1 — Project Overview
+
+**The question it answers:** *"What is this project, and why should I care?"*
+
+If a hiring manager spends 30 seconds on your portfolio, this page is what they see. So it has to land fast:
+- A bold hero with the project name
+- 4 KPI cards: 2.69M trips, 32 features, R² 0.978, ~1 min average error
+- A 2-sentence description of what the model does
+- The tech stack as little badges (LightGBM, Optuna, MLflow, etc.)
+
+The numbers do the work. "98% accuracy on 2.7M real NYC trips" tells a recruiter more in 10 seconds than 3 paragraphs of prose.
+
+### Page 2 — Explore the Data
+
+**The question it answers:** *"What does the data actually look like?"*
+
+This is your EDA from Day 2, but interactive instead of static. Four tabs:
+1. **Duration distribution** — with a toggle to switch between raw minutes and log scale (so visitors can *see* why we used log transform)
+2. **Time patterns** — average duration by hour, with the rush hour bands highlighted
+3. **Location effects** — box plots comparing airport vs Manhattan vs other-borough trips
+4. **Correlations** — a heatmap showing which features track with duration
+
+The point isn't just to show charts — it's to walk a visitor through the discoveries that shaped the model.
+
+### Page 3 — Model Results
+
+**The question it answers:** *"How well does the model work, and can I try it?"*
+
+Two halves:
+
+**Top half — comparison and accuracy:**
+- Cards for each model tried (Linear, Ridge, LightGBM default, LightGBM tuned) with their scores
+- A "predicted vs actual" scatter plot — points clustered along the diagonal = good predictions
+- A bar chart of which features mattered most
+
+**Bottom half — the live predictor.** This is the most interesting part. Visitors pick a pickup zone, dropoff zone, distance, hour, and day of week. They get a real prediction from the model.
+
+We'll explain how this works in detail below — it's the trickiest piece of the whole app.
+
+### Page 4 — How I Built This
+
+**The question it answers:** *"Are you a real engineer or did you just glue stuff together?"*
+
+This page is for the technical reviewer:
+- An architecture diagram showing the pipeline (raw data → cleaning → features → training → tuning → app)
+- A timeline of Days 1–5
+- 4 key decisions explained (why log transform, why 300k tuning sample, why cyclic encoding, etc.)
+- 5 lessons learned
+
+This is where you prove you understand the *why* behind your choices, not just the *what*.
+
+---
+
+## How the Live Predictor Works (The Important Part)
+
+This is the trickiest and most clever part of the app. The model expects **32 input features** (PULocationID, DOLocationID, hour_sin, distance_x_rush_hour, ...). But asking a visitor to type in 32 values would be a terrible experience.
+
+So the predictor lets the visitor pick **just 6 simple things**:
+1. Pickup zone (dropdown of 25 popular NYC zones)
+2. Dropoff zone (same dropdown)
+3. Distance (a slider, 0.5–25 miles)
+4. Hour of day (slider, 0–23)
+5. Day of week (Mon–Sun)
+6. Number of passengers (1–6)
+
+Then **behind the scenes**, the app **rebuilds all 32 features** from those 6 inputs — exactly the same way Day 3's feature engineering did during training:
+
+```
+User picks: Midtown → JFK, 12 miles, 8am Monday, 1 passenger
+
+App computes:
+   PULocationID    = 161 (Midtown's TLC zone ID)
+   DOLocationID    = 132 (JFK)
+   hour            = 8
+   day_of_week     = 0
+   hour_sin        = sin(2π × 8/24) = 0.866
+   hour_cos        = cos(2π × 8/24) = -0.5
+   is_am_rush      = 1   (it's 8am on a weekday)
+   is_pu_manhattan = 1   (Midtown is in Manhattan)
+   is_airport_trip = 1   (JFK is an airport)
+   distance_x_rush = 12 × 1 = 12
+   ... (22 more features)
+
+Model.predict() → log(duration) = 6.42
+expm1(6.42) = 614 seconds = 10.2 minutes
+```
+
+**Why this matters:** The exact same transformations that ran on 2.69M training rows have to run on this single live input. If the training pipeline computed `is_rush_hour` one way and the app computed it differently, the model would silently produce garbage. This is one of the most common ways ML systems break in production.
+
+The way to avoid that: the app's `build_input_row()` function mirrors the training code's `create_features()` line-for-line. Same logic, applied at the same point in the flow.
+
+---
+
+## What's the Difference Between This and an "API"?
+
+You'll hear ML engineers talk about "deploying a model" or "model APIs." Here's how a Streamlit app fits in:
+
+| Approach | What it is | When to use |
+|---|---|---|
+| **Streamlit app** | A website with a model inside | Demos, portfolios, internal tools, exploration |
+| **REST API** (FastAPI) | A URL that takes JSON in and returns JSON out | Production systems, mobile apps, other services calling the model |
+| **Batch script** | A Python script that processes a file | Nightly jobs, ETL, large offline runs |
+
+For a portfolio, **Streamlit is the right call.** A REST API isn't useful to a hiring manager — they don't have a curl command ready. They have a browser.
+
+(For a real production taxi app, you'd build a FastAPI service, and the iPhone app would call it. The Streamlit version exists so a human can see the model work without writing any code.)
+
+---
+
+## A Subtle Bug We Hit
+
+One thing worth knowing about because you'll see it again: the Model Results page initially showed raw HTML code on screen instead of rendered cards. The reason was a beautiful little gotcha:
+
+- The card HTML was inside a Python loop, indented 12 spaces deep
+- One of the values (`{badge}`) was empty for non-winner models
+- When Streamlit dedented the multi-line string, that empty value left a **blank line in the middle of the HTML**
+- Markdown's CommonMark parser closes any HTML block at a blank line
+- Everything after the blank line got re-parsed as an indented code block — and shown as literal text
+
+Lesson: when you mix conditional content into multi-line HTML strings, an empty value can leave a blank line that breaks everything downstream. Fix: build the HTML as a single concatenated string so empty values become zero-length segments instead of blank lines.
+
+This kind of bug doesn't show up in any tutorial. They show up when you build real things. Catching them is part of the work.
+
+---
+
+# The Through-Line Across All Five Days
 
 ```
 Day 1:  Raw messy data   →  Clean usable data       (removed 9.3% bad rows)
 Day 2:  Numbers          →  Visual understanding    (found log transform + rush hour signal)
-Day 3:  Raw columns      →  Meaningful signals      (20 columns → 36 engineered features)
+Day 3:  Raw columns      →  Meaningful signals      (20 columns → 32 engineered features)
 Day 4:  Features         →  Predictions             (MAE 6.1 min → 1.0 min)
+Day 5:  A model file     →  A working product       (4-page site with live predictions)
 ```
 
 Each day built on the previous one:
@@ -524,5 +708,8 @@ Each day built on the previous one:
 - Skip Day 2 → you wouldn't know to use log transform
 - Skip Day 3 → model misses rush hour patterns entirely
 - Skip Day 4 → you have features but no model
+- Skip Day 5 → you have a model but nobody can see or use it
 
 The whole pipeline is a chain. Every link matters.
+
+**The big picture:** A real ML project isn't just "train a model." It's *get raw data → clean it → understand it → reshape it → train on it → tune it → ship it to users*. Five steps. Each one is its own discipline. Each one is what the next link depends on. That's the actual job.

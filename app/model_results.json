@@ -15,17 +15,26 @@
       "mae_sec": 363.75,
       "mae_min": 6.1,
       "rmse_log": 0.446,
-      "description": "Linear + L2 regularization (similar to baseline here)",
+      "description": "Linear + L2 regularization (no improvement on this data)",
       "winner": false
     },
     {
-      "name": "LightGBM",
-      "r2": 0.978,
+      "name": "LightGBM (default)",
+      "r2": 0.9778,
       "mae_sec": 59.16,
       "mae_min": 1.0,
-      "rmse_log": 0.104,
+      "rmse_log": 0.1037,
       "description": "Gradient boosted trees \u2014 captures non-linear patterns",
       "winner": true
+    },
+    {
+      "name": "LightGBM (tuned)",
+      "r2": 0.9774,
+      "mae_sec": 59.5,
+      "mae_min": 1.0,
+      "rmse_log": 0.1046,
+      "description": "30 Optuna trials \u2014 defaults were already near-optimal",
+      "winner": false
     }
   ],
   "feature_importances": {
@@ -65,7 +74,7 @@
   "stats": {
     "total_trips": 2687584,
     "n_features": 32,
-    "best_r2": 0.978,
+    "best_r2": 0.9778,
     "best_mae_min": 1.0,
     "baseline_mae_min": 6.1
   }

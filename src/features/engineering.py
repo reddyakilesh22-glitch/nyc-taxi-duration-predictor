@@ -19,8 +19,8 @@ import numpy as np
 import pandas as pd
 
 PROJECT_ROOT = Path(__file__).parents[2]
-CLEANED_PATH = PROJECT_ROOT / "data" / "cleaned" / "yellow_tripdata_2024-01_cleaned.parquet"
-FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2024-01_features.parquet"
+CLEANED_PATH = PROJECT_ROOT / "data" / "cleaned" / "yellow_tripdata_2026-01_cleaned.parquet"
+FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
 
 
 # ── NYC Domain Knowledge ─────────────────────────────────────────────────────

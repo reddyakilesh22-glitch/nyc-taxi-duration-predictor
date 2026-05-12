@@ -24,7 +24,7 @@ EXPECTED_NEW_COLUMNS = {
 def make_post_cleaning_dataframe(n_rows: int = 100) -> pd.DataFrame:
     """A synthetic dataframe matching what cleaner.py produces."""
     rng = np.random.default_rng(42)
-    pickup = pd.date_range("2024-01-01", periods=n_rows, freq="13min")
+    pickup = pd.date_range("2026-01-01", periods=n_rows, freq="13min")
     return pd.DataFrame({
         "tpep_pickup_datetime":  pickup,
         "tpep_dropoff_datetime": pickup + pd.Timedelta(minutes=10),

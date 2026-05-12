@@ -184,7 +184,7 @@ def print_result(result: dict):
 
 if __name__ == "__main__":
     PROJECT_ROOT = Path(__file__).parents[2]
-    DATA_FILE = PROJECT_ROOT / "data" / "tlc" / "yellow" / "yellow_tripdata_2024-01.parquet"
+    DATA_FILE = PROJECT_ROOT / "data" / "tlc" / "yellow" / "yellow_tripdata_2026-01.parquet"
 
     print(f"Loading {DATA_FILE.name}...")
     df = pd.read_parquet(DATA_FILE)

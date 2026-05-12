@@ -124,8 +124,8 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
 
 
 if __name__ == "__main__":
-    input_file  = RAW_DIR / "yellow_tripdata_2024-01.parquet"
-    output_file = CLEANED_DIR / "yellow_tripdata_2024-01_cleaned.parquet"
+    input_file  = RAW_DIR / "yellow_tripdata_2026-01.parquet"
+    output_file = CLEANED_DIR / "yellow_tripdata_2026-01_cleaned.parquet"
 
     CLEANED_DIR.mkdir(parents=True, exist_ok=True)
 

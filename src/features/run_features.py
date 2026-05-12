@@ -19,9 +19,9 @@ sys.path.insert(0, str(Path(__file__).parents[1]))
 from features.engineering import create_features, select_features
 
 PROJECT_ROOT = Path(__file__).parents[2]
-CLEANED_PATH = PROJECT_ROOT / "data" / "cleaned" / "yellow_tripdata_2024-01_cleaned.parquet"
+CLEANED_PATH = PROJECT_ROOT / "data" / "cleaned" / "yellow_tripdata_2026-01_cleaned.parquet"
 OUTPUT_DIR   = PROJECT_ROOT / "data" / "features"
-OUTPUT_PATH  = OUTPUT_DIR / "yellow_tripdata_2024-01_features.parquet"
+OUTPUT_PATH  = OUTPUT_DIR / "yellow_tripdata_2026-01_features.parquet"
 
 
 def main():

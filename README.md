@@ -17,11 +17,15 @@
 
 | | Baseline (Linear Regression) | **LightGBM (production model)** |
 |---|---|---|
-| **R²** | 0.589 | **0.978** |
-| **Mean Absolute Error** | 6.1 minutes | **~1 minute** |
-| **Relative improvement** | — | **83% lower error** |
+| **R² (log-space)** | 0.761 | **0.983** |
+| **Mean Absolute Error** | 77.8 minutes¹ | **~1 minute** |
+| **Relative improvement** | — | **99% lower error** |
 
-Trained on **2.69 million cleaned NYC taxi trips** from January 2024 (NYC TLC public data).
+Trained on **2.38 million cleaned NYC taxi trips** from January 2026 (NYC TLC public data).
+
+¹ Linear regression on a log-transformed target can produce extreme predictions
+that blow up after the back-transform — a classic failure mode that tree models
+sidestep entirely. See [`notes/learn.md`](notes/learn.md) for the full explanation.
 
 ---
 
@@ -37,7 +41,7 @@ A 4-page interactive Streamlit app that walks through the entire ML pipeline:
 The full project is built around 5 production-grade pieces:
 
 - **Data quality gate** with 5 automated checks (schema, row count, nulls, ranges, target distribution)
-- **Feature engineering** producing 32 features across 3 categories — temporal (cyclic sin/cos hour encoding, rush-hour flags), geospatial (Manhattan/airport zone flags), interaction (distance × rush hour, fare-per-mile congestion proxy)
+- **Feature engineering** producing 34 features across 3 categories — temporal (cyclic sin/cos hour encoding, rush-hour flags), geospatial (Manhattan/airport zone flags, CBD congestion fee), interaction (distance × rush hour, fare-per-mile congestion proxy)
 - **Model comparison** with 5-fold cross-validation — Linear Regression, Ridge, LightGBM
 - **Hyperparameter tuning** with Optuna Bayesian search (30 trials, MLflow-tracked)
 - **Tests + CI** — 8 pytest tests + GitHub Actions running on every push
@@ -127,10 +131,10 @@ ruff check src/ app/    # lint
 
 | Day | Stage | Key Output |
 |---|---|---|
-| **1** | Data inspection & quality gate | Removed 9.3% bad rows (negative fares, 300k-mile trips, sub-60s trips) |
+| **1** | Data inspection & quality gate | Removed 36% bad rows (negative fares, 300k-mile trips, sub-60s trips, nulls) |
 | **2** | Exploratory data analysis | Found right-skewed target → log transform; rush hour adds 3–4 min |
-| **3** | Feature engineering | 20 raw columns → 32 engineered features (cyclic time, borough flags, interactions) |
-| **4** | Model training & tuning | LightGBM hit R²=0.978 / MAE=1min; Optuna ran 30 trials over 3 hours |
+| **3** | Feature engineering | 20 raw columns → 34 engineered features (cyclic time, borough flags, interactions) |
+| **4** | Model training & tuning | LightGBM hit R²=0.983 / MAE=0.9min; baseline blew up to MAE=77min |
 | **5** | Interactive dashboard | 4-page Streamlit app with live predictor and 25 popular NYC zones |
 | **6** | Production hardening | Dockerized, 8 pytest tests, GitHub Actions CI passing on every push |
 
@@ -139,29 +143,38 @@ A complete plain-English walkthrough — written for someone new to ML — lives
 
 ---
 
-## An Honest Finding
+## Two Honest Findings
 
-Optuna ran 30 hyperparameter trials over **3 hours**. The result:
+### 1. The baseline isn't as bad as MAE suggests
 
-```
-Default LightGBM:  R² = 0.9778,  MAE = 59.16s
-Tuned LightGBM:    R² = 0.9774,  MAE = 59.50s
-```
+Linear Regression hits R² = 0.761 in log-space — meaning the *shape* of its
+predictions tracks duration well. But MAE in seconds is **77 minutes**, because
+a small log-space error explodes after `expm1()`. Tree models (LightGBM)
+don't have this back-transform problem — their predictions are bounded by
+training-data leaf values. This is the actual reason most production
+duration/price prediction models use trees, not linear regression.
 
-Tuning made the model **marginally worse** on the test set. The defaults were already near-optimal for this data. This is a real-world lesson kept in the project rather than hidden: **good defaults + thoughtful features beat blind hyperparameter search almost every time**, and any portfolio that claims otherwise is selectively reporting.
+### 2. Optuna tuning didn't help
+
+A previous run on the older 2024 data found that 30 Optuna trials over
+3 hours produced essentially no improvement over LightGBM's defaults
+(R² 0.9778 vs 0.9774). The lesson kept in the project: **good defaults +
+thoughtful features beat blind hyperparameter search almost every time**.
+Optuna was not re-run on the 2026 data; based on the prior result it's
+unlikely to change the conclusion.
 
 ---
 
 ## Architecture
 
 ```
-Raw TLC parquet (2.96M rows)
+Raw TLC parquet (3.72M rows)
         │
         ▼
    ┌──────────┐    ┌────────────────┐    ┌─────────────────┐
    │ Cleaning │ → │ Feature        │ → │ Training        │
-   │ (9.3%    │   │ engineering    │   │ (Linear, Ridge, │
-   │ removed) │   │ (20→32 cols)   │   │ LightGBM)       │
+   │ (36%     │   │ engineering    │   │ (Linear, Ridge, │
+   │ removed) │   │ (20→34 cols)   │   │ LightGBM)       │
    └──────────┘    └────────────────┘    └─────────────────┘
         │                  │                     │
         │                  │                     ▼
@@ -187,8 +200,8 @@ Raw TLC parquet (2.96M rows)
 
 ## Data Source
 
-NYC Taxi & Limousine Commission Trip Record Data — January 2024 Yellow Taxi trips
-(2,964,624 raw records). Available at
+NYC Taxi & Limousine Commission Trip Record Data — January 2026 Yellow Taxi trips
+(3,724,889 raw records). Available at
 [nyc.gov/tlc](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
 
 The TLC data is in the public domain.

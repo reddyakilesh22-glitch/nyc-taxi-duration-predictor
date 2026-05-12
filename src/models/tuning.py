@@ -30,7 +30,7 @@ from sklearn.model_selection import KFold, cross_val_score, train_test_split
 optuna.logging.set_verbosity(optuna.logging.WARNING)  # silence per-trial logs
 
 PROJECT_ROOT  = Path(__file__).parents[2]
-FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2024-01_features.parquet"
+FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
 MODEL_DIR     = PROJECT_ROOT / "models"
 
 DROP_COLS = ["duration_sec", "tpep_pickup_datetime", "tpep_dropoff_datetime",

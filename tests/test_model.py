@@ -56,8 +56,10 @@ def test_production_model_loads_and_predicts_in_range():
     row = {
         "VendorID": 2, "passenger_count": 1, "trip_distance": distance,
         "RatecodeID": 1, "PULocationID": 161, "DOLocationID": 230,
-        "payment_type": 1, "extra": 1.0, "mta_tax": 0.5, "tip_amount": 2.85,
+        "payment_type": 1,
+        "fare_amount": 10.0, "extra": 1.0, "mta_tax": 0.5, "tip_amount": 2.85,
         "tolls_amount": 0.0, "congestion_surcharge": 2.5, "Airport_fee": 0.0,
+        "cbd_congestion_fee": 0.75,
         "hour": hour, "day_of_week": dow,
         "hour_sin": np.sin(2 * np.pi * hour / 24),
         "hour_cos": np.cos(2 * np.pi * hour / 24),

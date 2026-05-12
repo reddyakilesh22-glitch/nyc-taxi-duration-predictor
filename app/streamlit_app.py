@@ -225,7 +225,7 @@ def load_predictions():
 
 @st.cache_data
 def load_feature_sample(n=20_000):
-    path = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2024-01_features.parquet"
+    path = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
     if path.exists():
         df = pd.read_parquet(path, columns=[
             "duration_sec", "trip_distance", "hour", "day_of_week",
@@ -299,6 +299,10 @@ def build_input_row(pu_id, do_id, distance, hour, dow, passengers, fare_est):
     is_both_man  = int(is_pu_man and is_do_man)
     fare_per_mile= fare_est / max(distance, 0.1)
 
+    # NYC's CBD congestion charge ($0.75) applies to trips entering/within the
+    # Manhattan core. Approximate that with the existing Manhattan-zone check.
+    cbd_fee = 0.75 if (is_pu_man or is_do_man) else 0.0
+
     return {
         "VendorID":            2,
         "passenger_count":     passengers,
@@ -307,12 +311,14 @@ def build_input_row(pu_id, do_id, distance, hour, dow, passengers, fare_est):
         "PULocationID":        pu_id,
         "DOLocationID":        do_id,
         "payment_type":        1,
+        "fare_amount":         fare_est,
         "extra":               1.0,
         "mta_tax":             0.5,
         "tip_amount":          2.85,
         "tolls_amount":        0.0,
         "congestion_surcharge":2.5,
         "Airport_fee":         0.0 if not is_airport else 1.75,
+        "cbd_congestion_fee":  cbd_fee,
         "hour":                hour,
         "day_of_week":         dow,
         "hour_sin":            np.sin(2 * np.pi * hour / 24),
@@ -363,7 +369,7 @@ def page_overview():
         <div class="kpi-card">
             <div class="kpi-label">Trips Analyzed</div>
             <div class="kpi-value">2.69M</div>
-            <div class="kpi-delta">January 2024 NYC TLC data</div>
+            <div class="kpi-delta">January 2026 NYC TLC data</div>
         </div>""", unsafe_allow_html=True)
 
     with c2:
@@ -457,7 +463,7 @@ def page_explore():
     df = load_feature_sample()
 
     st.markdown('<h2 style="color:#1a1a2e;">📊 Explore the Data</h2>', unsafe_allow_html=True)
-    st.caption(f"Based on {len(df):,} randomly sampled trips from January 2024")
+    st.caption(f"Based on {len(df):,} randomly sampled trips from January 2026")
 
     tab1, tab2, tab3, tab4 = st.tabs([
         "🕐 Duration Distribution", "⏰ Time Patterns", "🗺️ Location Insights", "🔗 Correlations"
@@ -1011,7 +1017,7 @@ def page_how_built():
         st.markdown("""
 **NYC TLC Trip Record Data** — NYC Taxi & Limousine Commission
 
-January 2024 Yellow Taxi trips (2,964,624 raw records).
+January 2026 Yellow Taxi trips (2,964,624 raw records).
 Available at [nyc.gov/tlc](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
         """)
 
@@ -1023,7 +1029,7 @@ def _footer():
     st.markdown("""
     <div class="footer">
         NYC Taxi Trip Duration Predictor &nbsp;·&nbsp; Built with LightGBM, Optuna, MLflow & Streamlit
-        &nbsp;·&nbsp; Data: NYC TLC January 2024
+        &nbsp;·&nbsp; Data: NYC TLC January 2026
     </div>
     """, unsafe_allow_html=True)
 

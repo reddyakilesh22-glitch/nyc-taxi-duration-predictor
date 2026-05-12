@@ -29,7 +29,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
 
 PROJECT_ROOT  = Path(__file__).parents[2]
-FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2024-01_features.parquet"
+FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
 MODEL_DIR     = PROJECT_ROOT / "models"
 
 DROP_COLS = ["duration_sec", "tpep_pickup_datetime", "tpep_dropoff_datetime",

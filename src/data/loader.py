@@ -20,7 +20,7 @@ PROJECT_ROOT = Path(__file__).parents[2]
 DATA_DIR = PROJECT_ROOT / "data" / "tlc" / "yellow"
 
 
-def load_sample(filename: str = "yellow_tripdata_2024-01.parquet") -> pd.DataFrame:
+def load_sample(filename: str = "yellow_tripdata_2026-01.parquet") -> pd.DataFrame:
     """Load a single month of yellow taxi data."""
     path = DATA_DIR / filename
     if not path.exists():

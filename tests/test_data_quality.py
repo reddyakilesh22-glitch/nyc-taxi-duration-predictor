@@ -13,7 +13,7 @@ from data.quality import check_data_quality
 def make_clean_dataframe(n_rows: int = 200) -> pd.DataFrame:
     """A small synthetic dataframe shaped like cleaned taxi data."""
     rng     = np.random.default_rng(42)
-    pickup  = pd.date_range("2024-01-01", periods=n_rows, freq="5min")
+    pickup  = pd.date_range("2026-01-01", periods=n_rows, freq="5min")
     dropoff = pickup + pd.to_timedelta(rng.integers(60, 1800, n_rows), unit="s")
     return pd.DataFrame({
         "tpep_pickup_datetime":  pickup,

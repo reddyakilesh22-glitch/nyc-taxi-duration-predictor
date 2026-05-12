@@ -6,7 +6,7 @@
 
 ## What Were We Actually Doing?
 
-You downloaded 3 million rows of taxi trip data. Before doing anything with it, you needed to answer one question:
+You downloaded 3.7 million rows of taxi trip data. Before doing anything with it, you needed to answer one question:
 
 **"Is this data even usable?"**
 
@@ -23,7 +23,7 @@ Day 1 was that inspection step.
 This was your first look at the data. Like opening a box you've never seen before and taking inventory.
 
 It answered five questions:
-1. **How big is it?** → 2,964,624 rows. Almost 3 million taxi trips in one month.
+1. **How big is it?** → 3,724,889 rows. Almost 3.7 million taxi trips in one month.
 2. **What columns exist?** → Pickup time, dropoff time, distance, zone IDs, fare, etc.
 3. **What type is each column?** → Are timestamps stored as actual dates or plain text? (Matters a lot — you can't subtract text to get duration.)
 4. **What do the numbers look like?** → Min, max, average for every column.
@@ -89,12 +89,12 @@ The quality gate found the problems. The cleaner fixes them.
 
 **The result:**
 ```
-Before cleaning:  2,964,624 rows
-After cleaning:   2,687,584 rows
-Removed:            277,040 rows (9.3%)
+Before cleaning:  3,724,889 rows
+After cleaning:   2,379,881 rows
+Removed:          1,345,008 rows (36.1%)
 ```
 
-9.3% of your data was bad. Without the cleaner, that garbage would have trained your model.
+36% of your data was bad. Without the cleaner, that garbage would have trained your model. (For reference, the same pipeline run on January 2024 data removed only 9.3% — the 2026 data has substantially more nulls and inconsistencies in `passenger_count`, `RatecodeID`, and other columns.)
 
 ---
 
@@ -102,7 +102,7 @@ Removed:            277,040 rows (9.3%)
 
 ## What Were We Actually Doing?
 
-You have 2.7 million clean rows. But clean doesn't mean understood.
+You have 2.4 million clean rows. But clean doesn't mean understood.
 
 EDA is where you **look at your data visually** before building anything. Numbers in a table are hard to interpret — plots make patterns obvious in seconds.
 
@@ -200,7 +200,7 @@ Think of it like translating a book. The raw data is written in a language the m
 
 ### Category 1 — Temporal Features (time-based)
 
-**The raw column:** `tpep_pickup_datetime = 2024-01-08 08:32:00`
+**The raw column:** `tpep_pickup_datetime = 2026-01-08 08:32:00`
 
 **What we extracted:**
 ```
@@ -290,10 +290,10 @@ Kept:          32 features  (ready for model training)
 
 ```
 Load cleaned data  →  Create features  →  Select features  →  Save
-  (2.69M rows)         (20 → 41 cols)       (41 → 36 cols)    (58 MB)
+  (2.38M rows)         (20 → 41 cols)       (41 → 34 cols)    (58 MB)
 ```
 
-This runs in 12 seconds on 2.7 million rows. It becomes your reproducible pipeline — next month when new data arrives, you run one command and get the same features applied consistently.
+This runs in 12 seconds on 2.4 million rows. It becomes your reproducible pipeline — next month when new data arrives, you run one command and get the same features applied consistently.
 
 ---
 
@@ -339,10 +339,36 @@ MAE = (2 + 3 + 0 + 5 + 3) / 5 = 2.6 minutes
 ```
 
 **Your results:**
-- LinearRegression MAE = **364 seconds = 6.1 minutes**
-- LightGBM MAE = **59 seconds = 1.0 minute**
+- LinearRegression MAE = **4667 seconds = 77.8 minutes** ⚠️ (see note below)
+- LightGBM MAE = **55 seconds = 0.9 minutes**
 
-If a taxi app says "12 minutes," LinearRegression might actually mean anywhere from 6 to 18. LightGBM means 11 to 13. One is useful, one is not.
+### Why the LinearRegression number looks insane
+
+77 minutes of average error on a model whose R² is 0.76 doesn't add up at first.
+Here's what's happening:
+
+We train on `log(1 + duration_sec)`, not on raw seconds. In log-space, a small
+mistake looks like 0.3 — fine. But when you convert the prediction back to
+seconds with `expm1()`, **small log-errors get exponentiated into huge
+seconds-errors**. A predicted log of 8.0 vs. an actual log of 7.0 is a
+1-point gap in log-space — but in seconds that's `e^8 - e^7 ≈ 1,884 seconds`
+= 31 minutes off.
+
+LinearRegression doesn't know the duration range is bounded. It can predict
+log values like 10, 12, 15 — which exponentiate into days or weeks. A handful
+of these blown-up predictions can drag the MAE for the whole test set into
+the dozens of minutes.
+
+**Tree models don't have this problem.** A tree's prediction is always
+*some weighted average of training labels*, so it can never predict outside
+the training-data range. That's why production duration/price models
+almost always use trees (LightGBM, XGBoost) — not linear regression.
+
+In other words: the absurd 77-minute MAE is itself the lesson. It's exactly
+why we use LightGBM.
+
+If a taxi app says "12 minutes," LinearRegression might actually mean
+anywhere from 6 to 60. LightGBM means 11 to 13. One is useful, one is not.
 
 ### What's a good MAE?
 There's no universal number — it depends on the problem. You judge it against:
@@ -378,8 +404,8 @@ This is your floor. Any real model must beat this.
 | Below 0 | Worse than guessing the average (something is very wrong) |
 
 **Your results:**
-- LinearRegression R² = **0.589**
-- LightGBM R² = **0.978**
+- LinearRegression R² = **0.761**
+- LightGBM R² = **0.983**
 
 ### A concrete example
 
@@ -515,6 +541,8 @@ After 3 hours of tuning (30 trials × 5-fold CV on 300k rows), the result was:
 ```
 Default LightGBM:  R² = 0.9778,  MAE = 59.16s
 Tuned LightGBM:    R² = 0.9774,  MAE = 59.50s
+
+(Note: this was on the older January 2024 dataset. We did not re-tune on the 2026 data; based on the prior result it's unlikely to change the conclusion.)
 ```
 
 The tuned model was **slightly worse** on the test set. The default hyperparameters were already near-optimal for this data.
@@ -574,11 +602,11 @@ The app is structured like a portfolio website, not a dashboard. Each page answe
 
 If a hiring manager spends 30 seconds on your portfolio, this page is what they see. So it has to land fast:
 - A bold hero with the project name
-- 4 KPI cards: 2.69M trips, 32 features, R² 0.978, ~1 min average error
+- 4 KPI cards: 2.38M trips, 34 features, R² 0.983, ~1 min average error
 - A 2-sentence description of what the model does
 - The tech stack as little badges (LightGBM, Optuna, MLflow, etc.)
 
-The numbers do the work. "98% accuracy on 2.7M real NYC trips" tells a recruiter more in 10 seconds than 3 paragraphs of prose.
+The numbers do the work. "98% accuracy on 2.4M real NYC trips" tells a recruiter more in 10 seconds than 3 paragraphs of prose.
 
 ### Page 2 — Explore the Data
 
@@ -655,7 +683,7 @@ Model.predict() → log(duration) = 6.42
 expm1(6.42) = 614 seconds = 10.2 minutes
 ```
 
-**Why this matters:** The exact same transformations that ran on 2.69M training rows have to run on this single live input. If the training pipeline computed `is_rush_hour` one way and the app computed it differently, the model would silently produce garbage. This is one of the most common ways ML systems break in production.
+**Why this matters:** The exact same transformations that ran on 1.9M training rows have to run on this single live input. If the training pipeline computed `is_rush_hour` one way and the app computed it differently, the model would silently produce garbage. This is one of the most common ways ML systems break in production.
 
 The way to avoid that: the app's `build_input_row()` function mirrors the training code's `create_features()` line-for-line. Same logic, applied at the same point in the flow.
 
@@ -699,7 +727,7 @@ This kind of bug doesn't show up in any tutorial. They show up when you build re
 Day 1:  Raw messy data   →  Clean usable data       (removed 9.3% bad rows)
 Day 2:  Numbers          →  Visual understanding    (found log transform + rush hour signal)
 Day 3:  Raw columns      →  Meaningful signals      (20 columns → 32 engineered features)
-Day 4:  Features         →  Predictions             (MAE 6.1 min → 1.0 min)
+Day 4:  Features         →  Predictions             (MAE 77.8 min → 0.9 min)
 Day 5:  A model file     →  A working product       (4-page site with live predictions)
 ```
 

@@ -1,6 +1,10 @@
 /data/
-/models/
 /mlruns/
+
+# Ignore everything in models/ except the small production artifact
+# (needed by the cloud-deployed Streamlit app for live predictions).
+/models/*
+!/models/production_model.pkl
 .env
 __pycache__/
 *.pyc

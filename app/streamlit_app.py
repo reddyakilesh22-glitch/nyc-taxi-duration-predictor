@@ -225,14 +225,21 @@ def load_predictions():
 
 @st.cache_data
 def load_feature_sample(n=20_000):
-    path = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
-    if path.exists():
-        df = pd.read_parquet(path, columns=[
-            "duration_sec", "trip_distance", "hour", "day_of_week",
-            "fare_per_mile", "is_rush_hour", "is_weekend",
-            "is_pu_manhattan", "is_airport_trip",
-        ])
-        return df.sample(n=min(n, len(df)), random_state=42).reset_index(drop=True)
+    # Look in three places, in order of preference:
+    #   1. app/eda_sample.parquet — small 50k-row sample bundled with the app
+    #      so the dashboard works on cloud deploys (no host filesystem).
+    #   2. data/features/yellow_tripdata_2026-01_features.parquet — full file
+    #      when running locally with real data mounted.
+    #   3. Synthetic demo data — last resort if nothing is available.
+    bundled = APP_DIR / "eda_sample.parquet"
+    full    = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
+    EDA_COLS = ["duration_sec", "trip_distance", "hour", "day_of_week",
+                "fare_per_mile", "is_rush_hour", "is_weekend",
+                "is_pu_manhattan", "is_airport_trip"]
+    for path in (bundled, full):
+        if path.exists():
+            df = pd.read_parquet(path, columns=EDA_COLS)
+            return df.sample(n=min(n, len(df)), random_state=42).reset_index(drop=True)
     return _demo_feature_sample(n)
 
 @st.cache_resource

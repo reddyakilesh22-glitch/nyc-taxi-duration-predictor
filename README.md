@@ -1,58 +1,200 @@
-# NYC Taxi Trip Duration Prediction
+# 🚕 NYC Taxi Trip Duration Predictor
 
-Predicts yellow taxi trip duration from pickup zone, time of day, and trip distance.
-Built as a full-stack ML portfolio project using NYC TLC data (2023–2026).
+[![CI](https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor/actions/workflows/ci.yml)
+![Python](https://img.shields.io/badge/python-3.11-blue)
+![Streamlit](https://img.shields.io/badge/streamlit-1.35%2B-FF4B4B)
+![LightGBM](https://img.shields.io/badge/LightGBM-4.6%2B-success)
+![Docker](https://img.shields.io/badge/docker-ready-2496ED)
 
-## Dataset
+> Predicts how long any NYC yellow-taxi trip will take, **before the meter starts** —
+> using only pickup zone, dropoff zone, time of day, and distance.
 
-- **Source:** NYC Taxi & Limousine Commission (TLC) — yellow taxi trip records
-- **Size:** ~2.7M clean trips per month, 39 months (2023–2026)
-- **Features:** Zone IDs, timestamps, trip distance, fare amounts
-- **Target:** Trip duration in seconds (log-transformed for modeling)
+**🔗 Live demo:** _coming soon (Streamlit Community Cloud)_
+
+---
+
+## The Result
+
+| | Baseline (Linear Regression) | **LightGBM (production model)** |
+|---|---|---|
+| **R²** | 0.589 | **0.978** |
+| **Mean Absolute Error** | 6.1 minutes | **~1 minute** |
+| **Relative improvement** | — | **83% lower error** |
+
+Trained on **2.69 million cleaned NYC taxi trips** from January 2024 (NYC TLC public data).
+
+---
+
+## What's Inside
+
+A 4-page interactive Streamlit app that walks through the entire ML pipeline:
+
+1. **Project Overview** — KPI cards, tech stack, and the headline result
+2. **Explore the Data** — interactive Plotly charts: duration distribution, rush hour patterns, route-type comparisons, correlation matrix
+3. **Model Results** — model comparison table, top-15 feature importances, predicted-vs-actual scatter, and a **live prediction form** where you pick a pickup zone, dropoff zone, hour, and day → instant ETA
+4. **How I Built This** — architecture diagram, day-by-day timeline, key decisions, and lessons learned
+
+The full project is built around 5 production-grade pieces:
+
+- **Data quality gate** with 5 automated checks (schema, row count, nulls, ranges, target distribution)
+- **Feature engineering** producing 32 features across 3 categories — temporal (cyclic sin/cos hour encoding, rush-hour flags), geospatial (Manhattan/airport zone flags), interaction (distance × rush hour, fare-per-mile congestion proxy)
+- **Model comparison** with 5-fold cross-validation — Linear Regression, Ridge, LightGBM
+- **Hyperparameter tuning** with Optuna Bayesian search (30 trials, MLflow-tracked)
+- **Tests + CI** — 8 pytest tests + GitHub Actions running on every push
+
+---
+
+## Tech Stack
+
+| Layer | Tools |
+|---|---|
+| **Data** | Pandas · PyArrow · Parquet |
+| **ML** | LightGBM · Scikit-learn · Optuna |
+| **Tracking** | MLflow |
+| **App** | Streamlit · Plotly |
+| **Quality** | Pytest · Ruff · GitHub Actions |
+| **Packaging** | Docker · docker-compose |
+
+---
+
+## How to Run
+
+### Option 1 — Docker (recommended)
+
+```bash
+docker compose up
+```
+
+Open http://localhost:8501. The container mounts `data/` and `models/` from your host, so the live predictor uses the real trained LightGBM model.
+
+### Option 2 — Local Python
+
+```bash
+# 1. Install dependencies (Python 3.11+)
+pip install -r requirements.txt
+
+# 2. (Optional) Re-run the full pipeline from raw data
+python src/data/cleaner.py            # clean raw TLC parquet → cleaned.parquet
+python src/features/run_features.py   # engineer 32 features → features.parquet
+python src/models/run_training.py     # train + log all models with MLflow
+python src/models/tuning.py           # 30-trial Optuna search (slow: ~3 hours)
+
+# 3. Launch the dashboard
+streamlit run app/streamlit_app.py
+```
+
+### Run the test suite
+
+```bash
+pytest tests/ -v        # 8 tests
+ruff check src/ app/    # lint
+```
+
+---
 
 ## Project Structure
 
 ```
-src/data/      — data loading, quality gate, cleaning
-src/features/  — feature engineering
-src/models/    — model training and prediction
-app/           — FastAPI API + Streamlit dashboard
-notebooks/     — EDA
-tests/         — unit tests
+.
+├── app/
+│   ├── streamlit_app.py         # 4-page interactive dashboard
+│   ├── model_results.json       # cached model metrics for the dashboard
+│   └── predictions.csv          # test-set predictions for residual plots
+├── src/
+│   ├── data/
+│   │   ├── loader.py            # raw data inspection
+│   │   ├── quality.py           # 5-check quality gate
+│   │   └── cleaner.py           # 6-step cleaning pipeline
+│   ├── features/
+│   │   ├── engineering.py       # create_features() + select_features()
+│   │   └── run_features.py      # pipeline runner
+│   └── models/
+│       ├── baseline.py          # LinearRegression baseline
+│       ├── compare_models.py    # 5-fold CV comparison
+│       ├── run_training.py      # MLflow-tracked training
+│       └── tuning.py            # Optuna hyperparameter search
+├── tests/                       # 8 pytest tests
+├── notebooks/eda.ipynb          # Day 2 EDA notebook
+├── notes/learn.md               # plain-English walkthrough of every step
+├── Dockerfile · docker-compose.yml
+├── .github/workflows/ci.yml     # GitHub Actions: tests + lint
+└── requirements.txt
 ```
 
-## Exploratory Data Analysis
+---
 
-Full analysis in [`notebooks/eda.ipynb`](notebooks/eda.ipynb).
+## The Journey — 6 Days, End to End
 
-**Dataset:** 2,687,584 clean trips (January 2024) across 20 columns — timestamps,
-zone IDs (1–263), distances, and fare components.
+| Day | Stage | Key Output |
+|---|---|---|
+| **1** | Data inspection & quality gate | Removed 9.3% bad rows (negative fares, 300k-mile trips, sub-60s trips) |
+| **2** | Exploratory data analysis | Found right-skewed target → log transform; rush hour adds 3–4 min |
+| **3** | Feature engineering | 20 raw columns → 32 engineered features (cyclic time, borough flags, interactions) |
+| **4** | Model training & tuning | LightGBM hit R²=0.978 / MAE=1min; Optuna ran 30 trials over 3 hours |
+| **5** | Interactive dashboard | 4-page Streamlit app with live predictor and 25 popular NYC zones |
+| **6** | Production hardening | Dockerized, 8 pytest tests, GitHub Actions CI passing on every push |
 
-**Key findings:**
+A complete plain-English walkthrough — written for someone new to ML — lives in
+[`notes/learn.md`](notes/learn.md).
 
-- **Duration is right-skewed** — most trips are 5–20 minutes but the tail extends to 3 hours.
-  We use `log(duration)` as the model target to prevent outliers from dominating training.
+---
 
-- **Fare amount correlates strongly with duration** (r ≈ 0.7) — the meter runs on time,
-  so fare and duration move together. Both fare and distance carry independent signal.
+## An Honest Finding
 
-- **Hour of day is a strong predictor** — rush hour trips (8am, 5–6pm) average 3–4 minutes
-  longer than off-peak. Hour of day will be a top feature in the model.
+Optuna ran 30 hyperparameter trials over **3 hours**. The result:
 
-- **Zone IDs have low linear correlation with duration** — but are still valuable.
-  LightGBM handles their non-linear patterns (261 categorical values) natively.
-
-- **No nulls after cleaning** — 9.3% of raw rows removed; remaining 2.69M are complete.
-
-## How to Run
-
-```bash
-# 1. Install dependencies
-pip install -r requirements.txt
-
-# 2. Run quality gate on raw data
-python src/data/quality.py
-
-# 3. Clean data
-python src/data/cleaner.py
 ```
+Default LightGBM:  R² = 0.9778,  MAE = 59.16s
+Tuned LightGBM:    R² = 0.9774,  MAE = 59.50s
+```
+
+Tuning made the model **marginally worse** on the test set. The defaults were already near-optimal for this data. This is a real-world lesson kept in the project rather than hidden: **good defaults + thoughtful features beat blind hyperparameter search almost every time**, and any portfolio that claims otherwise is selectively reporting.
+
+---
+
+## Architecture
+
+```
+Raw TLC parquet (2.96M rows)
+        │
+        ▼
+   ┌──────────┐    ┌────────────────┐    ┌─────────────────┐
+   │ Cleaning │ → │ Feature        │ → │ Training        │
+   │ (9.3%    │   │ engineering    │   │ (Linear, Ridge, │
+   │ removed) │   │ (20→32 cols)   │   │ LightGBM)       │
+   └──────────┘    └────────────────┘    └─────────────────┘
+        │                  │                     │
+        │                  │                     ▼
+        │                  │           ┌─────────────────┐
+        │                  │           │ MLflow tracking │
+        │                  │           │ Optuna tuning   │
+        │                  │           └─────────────────┘
+        │                  │                     │
+        │                  ▼                     ▼
+        │            features.parquet     production_model.pkl
+        │                                        │
+        ▼                                        ▼
+                       ┌──────────────────────────────┐
+                       │ Streamlit app                │
+                       │ (4 pages + live predictor)   │
+                       └──────────────────────────────┘
+                                    │
+                                    ▼
+                        Docker container · port 8501
+```
+
+---
+
+## Data Source
+
+NYC Taxi & Limousine Commission Trip Record Data — January 2024 Yellow Taxi trips
+(2,964,624 raw records). Available at
+[nyc.gov/tlc](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
+
+The TLC data is in the public domain.
+
+---
+
+## License
+
+MIT — feel free to fork, learn from, or build on this project.

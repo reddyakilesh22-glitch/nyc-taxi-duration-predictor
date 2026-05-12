@@ -415,7 +415,7 @@ def page_overview():
             "Output":     ["2.69M clean rows","32 engineered features","3 trained models", "Tuned hyperparameters"],
             "Key Result": ["Removed 9.3% bad", "20 → 32 features",  "R² 0.589 → 0.978",  "30 Optuna trials"],
         })
-        st.dataframe(pipeline_data, use_container_width=True, hide_index=True)
+        st.dataframe(pipeline_data, width="stretch", hide_index=True)
 
     with col_right:
         st.markdown('<div class="section-header">Tech Stack</div>', unsafe_allow_html=True)
@@ -448,7 +448,7 @@ def page_overview():
             margin=dict(t=40, b=10, l=10, r=10),
             showlegend=False,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     _footer()
 
@@ -490,7 +490,7 @@ def page_explore():
                 title=title,
             )
             fig.update_layout(template=PLOTLY_THEME, height=380, showlegend=False, margin=dict(t=50, b=20))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         with col2:
             st.markdown('<div class="section-header">Key Stats</div>', unsafe_allow_html=True)
@@ -531,7 +531,7 @@ def page_explore():
             fig.add_vrect(x0=16, x1=19, fillcolor=TAXI_YELLOW, opacity=0.15,
                           annotation_text="PM Rush", annotation_position="top right")
             fig.update_layout(template=PLOTLY_THEME, height=340, margin=dict(t=50, b=20))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             st.markdown("""
             <div class="callout">
@@ -557,7 +557,7 @@ def page_explore():
             )
             fig.update_layout(template=PLOTLY_THEME, height=340, margin=dict(t=50, b=20),
                               coloraxis_showscale=False)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
             st.markdown("""
             <div class="callout">
@@ -597,7 +597,7 @@ def page_explore():
             )
             fig.update_layout(template=PLOTLY_THEME, height=360, margin=dict(t=50, b=20),
                               showlegend=False)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         with col2:
             df_plot2 = df.sample(min(3000, len(df)), random_state=42).copy()
@@ -615,7 +615,7 @@ def page_explore():
                 trendline="ols",
             )
             fig.update_layout(template=PLOTLY_THEME, height=360, margin=dict(t=50, b=20))
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width="stretch")
 
         st.markdown("""
         <div class="callout">
@@ -650,7 +650,7 @@ def page_explore():
             aspect="auto",
         )
         fig.update_layout(template=PLOTLY_THEME, height=440, margin=dict(t=50, b=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         # Compute actual correlations to use in callouts (no hardcoded numbers)
         corr_dist = corr.loc["Distance",  "Duration"]
@@ -744,7 +744,7 @@ def page_models():
             template=PLOTLY_THEME, height=340,
             margin=dict(t=50, b=10, l=10, r=10), showlegend=False,
         )
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
         st.markdown("""
         <div class="callout">
@@ -777,7 +777,7 @@ def page_models():
         )
         fig.update_layout(template=PLOTLY_THEME, height=440, margin=dict(t=50, b=20),
                           coloraxis_showscale=False, yaxis_title="")
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     with col_res:
         st.markdown('<div class="section-header">Predicted vs Actual</div>', unsafe_allow_html=True)
@@ -797,7 +797,7 @@ def page_models():
         fig.add_annotation(x=max_val*0.7, y=max_val*0.9, text="Perfect prediction",
                            showarrow=False, font=dict(color=TAXI_YELLOW, size=11))
         fig.update_layout(template=PLOTLY_THEME, height=440, margin=dict(t=50, b=20))
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig, width="stretch")
 
     st.divider()
 

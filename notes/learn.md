@@ -1,8 +1,8 @@
-# Days 1–5 Explained — Plain English
+# Days 1–5 Explained: Plain English
 
 ---
 
-# Day 1 — Load Your Data and Build a Quality Gate
+# Day 1: Load Your Data and Build a Quality Gate
 
 ## What Were We Actually Doing?
 
@@ -18,14 +18,14 @@ Day 1 was that inspection step.
 
 ## The Three Files and What They Did
 
-### `loader.py` — "Let me see what I have"
+### `loader.py` - \"Let me see what I have"
 
 This was your first look at the data. Like opening a box you've never seen before and taking inventory.
 
 It answered five questions:
 1. **How big is it?** → 3,724,889 rows. Almost 3.7 million taxi trips in one month.
 2. **What columns exist?** → Pickup time, dropoff time, distance, zone IDs, fare, etc.
-3. **What type is each column?** → Are timestamps stored as actual dates or plain text? (Matters a lot — you can't subtract text to get duration.)
+3. **What type is each column?** → Are timestamps stored as actual dates or plain text? (Matters a lot, you can't subtract text to get duration.)
 4. **What do the numbers look like?** → Min, max, average for every column.
 5. **What's missing?** → Which columns have gaps, and how many?
 
@@ -36,27 +36,27 @@ It answered five questions:
 
 ---
 
-### `quality.py` — "Turn that inspection into automatic checks"
+### `quality.py` - \"Turn that inspection into automatic checks"
 
 Manually reading the loader output every time is fine once. But what about next month's data? And the month after?
 
-`quality.py` turns your observations into a **smoke alarm** — it checks automatically and tells you pass or fail, every time, in seconds.
+`quality.py` turns your observations into a **smoke alarm**, it checks automatically and tells you pass or fail, every time, in seconds.
 
 **The 5 checks it runs:**
 
-**Check 1 — Schema:** Do the required columns exist and are they the right type?
+**Check 1: Schema:** Do the required columns exist and are they the right type?
 If `tpep_pickup_datetime` is stored as text instead of a timestamp, you can't subtract it to get duration. This check catches that immediately.
 
-**Check 2 — Row count:** Are there at least 100 rows?
+**Check 2: Row count:** Are there at least 100 rows?
 If someone accidentally gives you an empty file, you'd waste an hour training a model on nothing.
 
-**Check 3 — Null rates:** Are columns more than 50% empty?
+**Check 3: Null rates:** Are columns more than 50% empty?
 A column that's 70% blank is basically unusable as a feature. The check flags it.
 
-**Check 4 — Value ranges:** Are the numbers physically possible?
-Distance can't be negative. Zone IDs must be 1–263. Fare can't be -$900. These rules come from domain knowledge — things you know must be true about taxi trips.
+**Check 4: Value ranges:** Are the numbers physically possible?
+Distance can't be negative. Zone IDs must be 1–263. Fare can't be -$900. These rules come from domain knowledge, things you know must be true about taxi trips.
 
-**Check 5 — Target distribution:** Does the thing you're predicting have variation?
+**Check 5: Target distribution:** Does the thing you're predicting have variation?
 If every single trip lasted exactly 10 minutes, there's nothing for a model to learn. This catches that edge case.
 
 **What it returns:**
@@ -69,23 +69,23 @@ statistics: counts and numbers
 
 ---
 
-### `cleaner.py` — "Now actually fix the problems"
+### `cleaner.py` - \"Now actually fix the problems"
 
 The quality gate found the problems. The cleaner fixes them.
 
 **The 6 things it did, in order:**
 
-1. **Computed trip duration** — subtracted pickup time from dropoff time. This created the column `duration_sec` — the number your model will learn to predict. It doesn't exist in raw data. You calculated it.
+1. **Computed trip duration**: subtracted pickup time from dropoff time. This created the column `duration_sec`, the number your model will learn to predict. It doesn't exist in raw data. You calculated it.
 
-2. **Dropped invalid durations** — kept only trips between 1 minute and 3 hours. Under 1 minute = probably cancelled. Over 3 hours = probably a data error.
+2. **Dropped invalid durations**: kept only trips between 1 minute and 3 hours. Under 1 minute = probably cancelled. Over 3 hours = probably a data error.
 
-3. **Removed impossible values** — no trips over 100 miles, no negative fares, zone IDs must be 1–263.
+3. **Removed impossible values**: no trips over 100 miles, no negative fares, zone IDs must be 1–263.
 
-4. **Removed exact duplicates** — if the same row appears twice, keep one, drop the other.
+4. **Removed exact duplicates**: if the same row appears twice, keep one, drop the other.
 
-5. **Filled nulls** — `passenger_count` was missing for 4.7% of trips. Instead of dropping those rows, filled with 1 (most common value). Same logic for other columns.
+5. **Filled nulls**: `passenger_count` was missing for 4.7% of trips. Instead of dropping those rows, filled with 1 (most common value). Same logic for other columns.
 
-6. **Shrunk data types** — changed `int64` to `int16` where numbers are small. Zone IDs only go up to 265, so they don't need 64 bits of storage. This saves memory when you load all 39 months at once.
+6. **Shrunk data types**: changed `int64` to `int16` where numbers are small. Zone IDs only go up to 265, so they don't need 64 bits of storage. This saves memory when you load all 39 months at once.
 
 **The result:**
 ```
@@ -94,17 +94,17 @@ After cleaning:   2,379,881 rows
 Removed:          1,345,008 rows (36.1%)
 ```
 
-36% of your data was bad. Without the cleaner, that garbage would have trained your model. (For reference, the same pipeline run on January 2024 data removed only 9.3% — the 2026 data has substantially more nulls and inconsistencies in `passenger_count`, `RatecodeID`, and other columns.)
+36% of your data was bad. Without the cleaner, that garbage would have trained your model. (For reference, the same pipeline run on January 2024 data removed only 9.3%, the 2026 data has substantially more nulls and inconsistencies in `passenger_count`, `RatecodeID`, and other columns.)
 
 ---
 
-# Day 2 — Exploratory Data Analysis (EDA)
+# Day 2: Exploratory Data Analysis (EDA)
 
 ## What Were We Actually Doing?
 
 You have 2.4 million clean rows. But clean doesn't mean understood.
 
-EDA is where you **look at your data visually** before building anything. Numbers in a table are hard to interpret — plots make patterns obvious in seconds.
+EDA is where you **look at your data visually** before building anything. Numbers in a table are hard to interpret, plots make patterns obvious in seconds.
 
 Think of it like a detective looking at a crime scene before forming a theory. You're looking for clues: What patterns exist? What's weird? What will matter when you build the model?
 
@@ -114,11 +114,11 @@ Think of it like a detective looking at a crime scene before forming a theory. Y
 
 ## The 7 Sections and What Each One Revealed
 
-### Section 1 — Overview
+### Section 1: Overview
 Just confirmed you're looking at the right data. Right number of rows, right columns, right types. The first cell anyone reading your notebook sees.
 
-### Section 2 — Target Distribution
-You plotted the distribution of `duration_sec` — the thing you're predicting.
+### Section 2: Target Distribution
+You plotted the distribution of `duration_sec`, the thing you're predicting.
 
 **What you saw:** A right-skewed distribution. Most trips were 5–20 minutes, but a long tail stretched out to 3 hours.
 
@@ -135,24 +135,24 @@ Now outliers don't dominate. The model learns from typical trips, not extreme on
 
 **Decision made:** Train the model on log-transformed duration.
 
-### Section 3 — Missing Values
+### Section 3: Missing Values
 Plotted a heatmap showing nulls per column after cleaning.
 
 **What you saw:** Zero nulls. The cleaner worked.
 
 A heatmap is just a grid where dark = null, light = present. You could see instantly that every column was completely filled.
 
-### Section 4 — Feature Distributions
-A 3×3 grid of histograms — one plot per feature.
+### Section 4: Feature Distributions
+A 3×3 grid of histograms, one plot per feature.
 
 **What you saw:**
-- `trip_distance` — right-skewed. Most trips under 5 miles, tail to 100 miles.
-- `fare_amount` — right-skewed. Most fares $8–$25, tail to $1000.
-- `PULocationID` — spiky. Some zones are extremely popular (JFK, Midtown), most are rare.
+- `trip_distance`, right-skewed. Most trips under 5 miles, tail to 100 miles.
+- `fare_amount`, right-skewed. Most fares $8–$25, tail to $1000.
+- `PULocationID`, spiky. Some zones are extremely popular (JFK, Midtown), most are rare.
 
 **Why it matters:** Skewed features might need transformation too. Very spiky distributions might mean certain zones dominate your training data.
 
-### Section 5 — Correlation Matrix
+### Section 5: Correlation Matrix
 A heatmap showing how much every feature moves together with every other feature.
 
 **What correlation means:**
@@ -162,29 +162,29 @@ A heatmap showing how much every feature moves together with every other feature
 
 **What you saw:**
 - `fare_amount` and `trip_distance`: correlation = 0.97. Almost perfectly in sync.
-- Makes sense — the meter runs on distance. More miles = higher fare.
+- Makes sense, the meter runs on distance. More miles = higher fare.
 
 **Why it matters:** If two features are 97% correlated, they're telling the model the same thing twice. Keeping both is redundant. The feature selection step on Day 3 dropped `fare_amount` because of this.
 
 **What most correlated with duration?** Fare amount, total amount, and trip distance. The longer the trip, the higher the fare. Makes sense.
 
-### Section 6 — Features vs Target
+### Section 6: Features vs Target
 Scatter plots of the strongest features plotted against duration.
 
 **The temporal plots were the most revealing:**
-- **Duration by hour:** Trips at 8am averaged 3–4 minutes longer than trips at 3am — for the same distance. Rush hour is real and measurable.
+- **Duration by hour:** Trips at 8am averaged 3–4 minutes longer than trips at 3am, for the same distance. Rush hour is real and measurable.
 - **Duration by day:** Weekday trips are consistently longer than weekend trips.
 
 **Decision made:** Hour of day and rush hour flags will be among our most important features.
 
-### Section 7 — Key Findings
+### Section 7: Key Findings
 A written markdown cell summarising everything discovered.
 
 **Why write it down:** In 3 months you'll look at this project and wonder "why did I use log transform?" The README captures the reason while it's fresh. Good documentation is what separates a portfolio project from a homework assignment.
 
 ---
 
-# Day 3 — Feature Engineering
+# Day 3: Feature Engineering
 
 ## What Were We Actually Doing?
 
@@ -198,7 +198,7 @@ Think of it like translating a book. The raw data is written in a language the m
 
 ## The Three Categories of Features We Built
 
-### Category 1 — Temporal Features (time-based)
+### Category 1, Temporal Features (time-based)
 
 **The raw column:** `tpep_pickup_datetime = 2026-01-08 08:32:00`
 
@@ -213,20 +213,20 @@ is_late_night = 0    (no)
 
 **Why:** Traffic is the biggest driver of trip duration. Traffic follows the clock. Monday at 8am and Sunday at 3am are completely different worlds even for the same route. The model needs to know this explicitly.
 
-**The tricky one — cyclic encoding:**
+**The tricky one, cyclic encoding:**
 
-If you give the model `hour = 23` and `hour = 0`, it thinks they're 23 apart. But 11pm and midnight are only 1 hour apart — they have nearly identical traffic. We fixed this with sin/cos encoding:
+If you give the model `hour = 23` and `hour = 0`, it thinks they're 23 apart. But 11pm and midnight are only 1 hour apart, they have nearly identical traffic. We fixed this with sin/cos encoding:
 
 ```
 hour_sin = sin(2π × hour / 24)
 hour_cos = cos(2π × hour / 24)
 ```
 
-This wraps the clock into a circle. Now the model sees 11pm and midnight as neighbours, not opposites. Think of it like the x and y coordinates of a point moving around a clock face — you need both to know exactly where you are on the circle.
+This wraps the clock into a circle. Now the model sees 11pm and midnight as neighbours, not opposites. Think of it like the x and y coordinates of a point moving around a clock face, you need both to know exactly where you are on the circle.
 
 ---
 
-### Category 2 — Domain (Geography) Features
+### Category 2, Domain (Geography) Features
 
 **The raw column:** `PULocationID = 161`
 
@@ -238,13 +238,13 @@ is_same_zone      = 0   (pickup and dropoff in different zones)
 is_both_manhattan = 1   (both pickup and dropoff in Manhattan)
 ```
 
-**Why:** The number 161 is meaningless to a model. But "this trip starts in Manhattan" is a powerful signal — Manhattan is the most congested place in NYC. We used NYC-specific knowledge (which zone IDs are Manhattan, which are airports) to translate the raw number into something meaningful.
+**Why:** The number 161 is meaningless to a model. But "this trip starts in Manhattan" is a powerful signal, Manhattan is the most congested place in NYC. We used NYC-specific knowledge (which zone IDs are Manhattan, which are airports) to translate the raw number into something meaningful.
 
 **`is_same_zone` is a particularly strong signal:** A trip that starts and ends in the same zone is almost always under 5 minutes. One flag captures that entire pattern.
 
 ---
 
-### Category 3 — Interaction Features
+### Category 3, Interaction Features
 
 **The idea:** Sometimes two things together matter more than either one alone.
 
@@ -261,17 +261,17 @@ fare_per_mile    = fare_amount / trip_distance
 
 ---
 
-## Feature Selection — Removing What Doesn't Help
+## Feature Selection, Removing What Doesn't Help
 
 After creating 37 features, we ran two filters:
 
-**Filter 1 — High correlation (dropped 3):**
+**Filter 1, High correlation (dropped 3):**
 
 `fare_amount` was 96.5% correlated with `trip_distance`. They say almost the same thing. Keeping both is like asking "how far did you go?" and "how many miles did you travel?" in the same survey. We kept `trip_distance` and dropped `fare_amount`.
 
-**Filter 2 — Near-zero variance (dropped 2):**
+**Filter 2, Near-zero variance (dropped 2):**
 
-`improvement_surcharge` is $1.00 on almost every single trip. A column where 99% of rows have the same value teaches the model nothing — there's no pattern to learn.
+`improvement_surcharge` is $1.00 on almost every single trip. A column where 99% of rows have the same value teaches the model nothing, there's no pattern to learn.
 
 `month` had zero variance because we only loaded one month of data.
 
@@ -293,11 +293,11 @@ Load cleaned data  →  Create features  →  Select features  →  Save
   (2.38M rows)         (20 → 41 cols)       (41 → 34 cols)    (58 MB)
 ```
 
-This runs in 12 seconds on 2.4 million rows. It becomes your reproducible pipeline — next month when new data arrives, you run one command and get the same features applied consistently.
+This runs in 12 seconds on 2.4 million rows. It becomes your reproducible pipeline, next month when new data arrives, you run one command and get the same features applied consistently.
 
 ---
 
-# Day 4 — Model Training and Metrics
+# Day 4: Model Training and Metrics
 
 ## What Were We Actually Doing?
 
@@ -312,7 +312,7 @@ You always start simple. If LinearRegression gets R²=0.85 and LightGBM gets R²
 
 ---
 
-## MAE — Mean Absolute Error
+## MAE, Mean Absolute Error
 
 ### What it means in plain English
 > "On average, how many minutes is the model off by?"
@@ -332,7 +332,7 @@ Say you have 5 trips:
 | 5 | 15 | 18 | 3 |
 
 **Step 1:** Calculate the error (actual − predicted).
-**Step 2:** Make all negatives positive (absolute value). Being off by +3 and -3 are equally bad. Without this step they'd cancel out to zero — a lie.
+**Step 2:** Make all negatives positive (absolute value). Being off by +3 and -3 are equally bad. Without this step they'd cancel out to zero, a lie.
 **Step 3:** Average them:
 ```
 MAE = (2 + 3 + 0 + 5 + 3) / 5 = 2.6 minutes
@@ -348,21 +348,21 @@ MAE = (2 + 3 + 0 + 5 + 3) / 5 = 2.6 minutes
 Here's what's happening:
 
 We train on `log(1 + duration_sec)`, not on raw seconds. In log-space, a small
-mistake looks like 0.3 — fine. But when you convert the prediction back to
+mistake looks like 0.3, fine. But when you convert the prediction back to
 seconds with `expm1()`, **small log-errors get exponentiated into huge
 seconds-errors**. A predicted log of 8.0 vs. an actual log of 7.0 is a
-1-point gap in log-space — but in seconds that's `e^8 - e^7 ≈ 1,884 seconds`
+1-point gap in log-space, but in seconds that's `e^8 - e^7 ≈ 1,884 seconds`
 = 31 minutes off.
 
 LinearRegression doesn't know the duration range is bounded. It can predict
-log values like 10, 12, 15 — which exponentiate into days or weeks. A handful
+log values like 10, 12, 15, which exponentiate into days or weeks. A handful
 of these blown-up predictions can drag the MAE for the whole test set into
 the dozens of minutes.
 
 **Tree models don't have this problem.** A tree's prediction is always
 *some weighted average of training labels*, so it can never predict outside
 the training-data range. That's why production duration/price models
-almost always use trees (LightGBM, XGBoost) — not linear regression.
+almost always use trees (LightGBM, XGBoost), not linear regression.
 
 In other words: the absurd 77-minute MAE is itself the lesson. It's exactly
 why we use LightGBM.
@@ -371,20 +371,20 @@ If a taxi app says "12 minutes," LinearRegression might actually mean
 anywhere from 6 to 60. LightGBM means 11 to 13. One is useful, one is not.
 
 ### What's a good MAE?
-There's no universal number — it depends on the problem. You judge it against:
-1. Your baseline — is the new model better?
-2. Real-world usefulness — is 1 minute of error acceptable for a taxi app?
+There's no universal number, it depends on the problem. You judge it against:
+1. Your baseline, is the new model better?
+2. Real-world usefulness, is 1 minute of error acceptable for a taxi app?
 
 ---
 
-## R² — R-Squared
+## R², R-Squared
 
 ### The key question R² asks
 > "How much better is my model than just guessing the average every single time?"
 
 ### The dumbest possible model
 
-Imagine a model that always answers with the average trip duration — no matter what the distance, hour, or location.
+Imagine a model that always answers with the average trip duration, no matter what the distance, hour, or location.
 
 ```
 Average duration = 11.5 minutes
@@ -397,7 +397,7 @@ This is your floor. Any real model must beat this.
 
 | R² | What it means |
 |---|---|
-| 1.0 | Perfect — predicted every trip exactly right |
+| 1.0 | Perfect, predicted every trip exactly right |
 | 0.978 | Explains 97.8% of why trips differ in duration |
 | 0.589 | Explains 58.9% of why trips differ in duration |
 | 0.0 | Exactly as good as guessing the average every time |
@@ -448,13 +448,13 @@ y = np.log1p(duration_sec)    # before training
 preds = np.expm1(preds)       # after predicting
 ```
 
-Duration is right-skewed — most trips are short, a few are very long. If you train on raw duration, a few 3-hour trips dominate the error calculation and the model obsesses over them.
+Duration is right-skewed, most trips are short, a few are very long. If you train on raw duration, a few 3-hour trips dominate the error calculation and the model obsesses over them.
 
 `log1p` compresses the scale so outliers don't dominate. The model focuses on getting typical trips right instead of rare extreme ones. This was a direct result of what we found in Day 2's EDA.
 
 ---
 
-## MLflow — Why You Logged Everything
+## MLflow, Why You Logged Everything
 
 Without MLflow, after 10 experiments you forget what you tried. Did you use 500 trees or 1000? What learning rate? What was the score?
 
@@ -463,15 +463,15 @@ MLflow stores every run automatically:
 - What score it got
 - The saved model file
 
-You can open `http://localhost:5000` and see every experiment in a table — compare them side by side, click into any run, and download any model.
+You can open `http://localhost:5000` and see every experiment in a table, compare them side by side, click into any run, and download any model.
 
 ---
 
-## Optuna — Automatically Finding the Best Settings
+## Optuna, Automatically Finding the Best Settings
 
 ### What's a hyperparameter?
 
-A **parameter** is something the model learns from data. LightGBM adjusts thousands of internal numbers during training — those are parameters.
+A **parameter** is something the model learns from data. LightGBM adjusts thousands of internal numbers during training, those are parameters.
 
 A **hyperparameter** is a setting *you* choose before training even starts. It controls *how* the model learns. Examples:
 
@@ -482,9 +482,9 @@ A **hyperparameter** is a setting *you* choose before training even starts. It c
 | `min_child_samples` | Minimum trips per leaf. Higher = smoother, less overfit |
 | `feature_fraction` | What fraction of features each tree sees. Lower = more variety |
 
-The model can't choose these itself — that's your job. And the wrong settings can make the difference between R²=0.95 and R²=0.98.
+The model can't choose these itself, that's your job. And the wrong settings can make the difference between R²=0.95 and R²=0.98.
 
-### The old way — Grid Search
+### The old way, Grid Search
 
 You could try every combination manually:
 ```
@@ -496,7 +496,7 @@ Try learning_rate=0.01, num_leaves=127 → score
 
 That's called Grid Search. It's exhaustive and very slow. If you have 9 hyperparameters each with 5 options, that's 5⁹ = nearly 2 million combinations. Not practical.
 
-### The smart way — Optuna's Bayesian Search
+### The smart way, Optuna's Bayesian Search
 
 Optuna doesn't try everything blindly. It learns from each attempt:
 
@@ -508,7 +508,7 @@ Trial 3:  learning_rate=0.02, num_leaves=160 → R²=0.976   ← still improving
 Trial 30: learning_rate=0.019, num_leaves=155 → R²=0.978  ← final best
 ```
 
-Each trial looks at what worked before and chooses the next combination that's most likely to improve. It's like a researcher who reads past experiment notes before designing the next one — not someone who just tries random settings.
+Each trial looks at what worked before and chooses the next combination that's most likely to improve. It's like a researcher who reads past experiment notes before designing the next one, not someone who just tries random settings.
 
 This is called **Bayesian optimization**. 30 smart trials beat 300 random ones.
 
@@ -516,7 +516,7 @@ This is called **Bayesian optimization**. 30 smart trials beat 300 random ones.
 
 Running 30 trials × 5 folds × 2.1M rows = training 150 models on 1.7M rows each. That would take 8+ hours.
 
-Hyperparameters that work well on a 300k random sample generalize to the full dataset — the patterns are the same, there's just less of them. We tune fast on the sample, then train the final model once on all 2.1M rows with the best settings found.
+Hyperparameters that work well on a 300k random sample generalize to the full dataset, the patterns are the same, there's just less of them. We tune fast on the sample, then train the final model once on all 2.1M rows with the best settings found.
 
 This is standard practice in industry. Tune on a representative sample, deploy on full data.
 
@@ -551,15 +551,15 @@ The tuned model was **slightly worse** on the test set. The default hyperparamet
 
 ---
 
-# Day 5 — Building the Portfolio App
+# Day 5: Building the Portfolio App
 
 ## What Were We Actually Doing?
 
-Up to Day 4, your model lived inside a `.pkl` file on your laptop. It worked, but only you could use it. To anyone else — a hiring manager, a friend, a future you in 6 months — your project was just a folder of Python files.
+Up to Day 4, your model lived inside a `.pkl` file on your laptop. It worked, but only you could use it. To anyone else, a hiring manager, a friend, a future you in 6 months, your project was just a folder of Python files.
 
 **Day 5 turned the model into a website.**
 
-Specifically: a 4-page interactive dashboard where anyone with the URL can click around, see the data, see the results, and most importantly — **type in their own taxi route and get a prediction in real time**.
+Specifically: a 4-page interactive dashboard where anyone with the URL can click around, see the data, see the results, and most importantly, **type in their own taxi route and get a prediction in real time**.
 
 Think of it like the difference between writing a recipe in a notebook vs. opening a restaurant. Same dish; very different reach.
 
@@ -567,7 +567,7 @@ Think of it like the difference between writing a recipe in a notebook vs. openi
 
 ## What is Streamlit?
 
-Streamlit is a Python library that turns scripts into web apps. You write Python — no HTML, no JavaScript, no React — and Streamlit renders it as a website in your browser.
+Streamlit is a Python library that turns scripts into web apps. You write Python, no HTML, no JavaScript, no React, and Streamlit renders it as a website in your browser.
 
 **Before Streamlit:**
 ```
@@ -596,7 +596,7 @@ Run `streamlit run app.py` and you have a live website. That's the whole pitch.
 
 The app is structured like a portfolio website, not a dashboard. Each page answers a specific question someone visiting your project would have.
 
-### Page 1 — Project Overview
+### Page 1, Project Overview
 
 **The question it answers:** *"What is this project, and why should I care?"*
 
@@ -608,34 +608,34 @@ If a hiring manager spends 30 seconds on your portfolio, this page is what they 
 
 The numbers do the work. "98% accuracy on 2.4M real NYC trips" tells a recruiter more in 10 seconds than 3 paragraphs of prose.
 
-### Page 2 — Explore the Data
+### Page 2, Explore the Data
 
 **The question it answers:** *"What does the data actually look like?"*
 
 This is your EDA from Day 2, but interactive instead of static. Four tabs:
-1. **Duration distribution** — with a toggle to switch between raw minutes and log scale (so visitors can *see* why we used log transform)
-2. **Time patterns** — average duration by hour, with the rush hour bands highlighted
-3. **Location effects** — box plots comparing airport vs Manhattan vs other-borough trips
-4. **Correlations** — a heatmap showing which features track with duration
+1. **Duration distribution**: with a toggle to switch between raw minutes and log scale (so visitors can *see* why we used log transform)
+2. **Time patterns**: average duration by hour, with the rush hour bands highlighted
+3. **Location effects**: box plots comparing airport vs Manhattan vs other-borough trips
+4. **Correlations**: a heatmap showing which features track with duration
 
-The point isn't just to show charts — it's to walk a visitor through the discoveries that shaped the model.
+The point isn't just to show charts, it's to walk a visitor through the discoveries that shaped the model.
 
-### Page 3 — Model Results
+### Page 3, Model Results
 
 **The question it answers:** *"How well does the model work, and can I try it?"*
 
 Two halves:
 
-**Top half — comparison and accuracy:**
+**Top half, comparison and accuracy:**
 - Cards for each model tried (Linear, Ridge, LightGBM default, LightGBM tuned) with their scores
-- A "predicted vs actual" scatter plot — points clustered along the diagonal = good predictions
+- A "predicted vs actual" scatter plot, points clustered along the diagonal = good predictions
 - A bar chart of which features mattered most
 
-**Bottom half — the live predictor.** This is the most interesting part. Visitors pick a pickup zone, dropoff zone, distance, hour, and day of week. They get a real prediction from the model.
+**Bottom half, the live predictor.** This is the most interesting part. Visitors pick a pickup zone, dropoff zone, distance, hour, and day of week. They get a real prediction from the model.
 
-We'll explain how this works in detail below — it's the trickiest piece of the whole app.
+We'll explain how this works in detail below, it's the trickiest piece of the whole app.
 
-### Page 4 — How I Built This
+### Page 4, How I Built This
 
 **The question it answers:** *"Are you a real engineer or did you just glue stuff together?"*
 
@@ -661,7 +661,7 @@ So the predictor lets the visitor pick **just 6 simple things**:
 5. Day of week (Mon–Sun)
 6. Number of passengers (1–6)
 
-Then **behind the scenes**, the app **rebuilds all 32 features** from those 6 inputs — exactly the same way Day 3's feature engineering did during training:
+Then **behind the scenes**, the app **rebuilds all 32 features** from those 6 inputs, exactly the same way Day 3's feature engineering did during training:
 
 ```
 User picks: Midtown → JFK, 12 miles, 8am Monday, 1 passenger
@@ -699,7 +699,7 @@ You'll hear ML engineers talk about "deploying a model" or "model APIs." Here's 
 | **REST API** (FastAPI) | A URL that takes JSON in and returns JSON out | Production systems, mobile apps, other services calling the model |
 | **Batch script** | A Python script that processes a file | Nightly jobs, ETL, large offline runs |
 
-For a portfolio, **Streamlit is the right call.** A REST API isn't useful to a hiring manager — they don't have a curl command ready. They have a browser.
+For a portfolio, **Streamlit is the right call.** A REST API isn't useful to a hiring manager, they don't have a curl command ready. They have a browser.
 
 (For a real production taxi app, you'd build a FastAPI service, and the iPhone app would call it. The Streamlit version exists so a human can see the model work without writing any code.)
 
@@ -713,7 +713,7 @@ One thing worth knowing about because you'll see it again: the Model Results pag
 - One of the values (`{badge}`) was empty for non-winner models
 - When Streamlit dedented the multi-line string, that empty value left a **blank line in the middle of the HTML**
 - Markdown's CommonMark parser closes any HTML block at a blank line
-- Everything after the blank line got re-parsed as an indented code block — and shown as literal text
+- Everything after the blank line got re-parsed as an indented code block, and shown as literal text
 
 Lesson: when you mix conditional content into multi-line HTML strings, an empty value can leave a blank line that breaks everything downstream. Fix: build the HTML as a single concatenated string so empty values become zero-length segments instead of blank lines.
 

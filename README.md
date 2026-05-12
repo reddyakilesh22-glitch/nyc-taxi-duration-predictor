@@ -1,4 +1,4 @@
-# 🚕 NYC Taxi Trip Duration Predictor
+# NYC Taxi Trip Duration Predictor
 
 [![CI](https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor/actions/workflows/ci.yml/badge.svg)](https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor/actions/workflows/ci.yml)
 ![Python](https://img.shields.io/badge/python-3.11-blue)
@@ -6,10 +6,10 @@
 ![LightGBM](https://img.shields.io/badge/LightGBM-4.6%2B-success)
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED)
 
-> Predicts how long any NYC yellow-taxi trip will take, **before the meter starts** —
-> using only pickup zone, dropoff zone, time of day, and distance.
+> Predicts how long any NYC yellow-taxi trip will take, **before the meter starts**.
+> Uses only pickup zone, dropoff zone, time of day, and distance.
 
-**🔗 Live demo:** _coming soon (Streamlit Community Cloud)_
+**Live demo:** _coming soon (Streamlit Community Cloud)_
 
 ---
 
@@ -19,12 +19,12 @@
 |---|---|---|
 | **R² (log-space)** | 0.761 | **0.983** |
 | **Mean Absolute Error** | 77.8 minutes¹ | **~1 minute** |
-| **Relative improvement** | — | **99% lower error** |
+| **Relative improvement** | - | **99% lower error** |
 
 Trained on **2.38 million cleaned NYC taxi trips** from January 2026 (NYC TLC public data).
 
 ¹ Linear regression on a log-transformed target can produce extreme predictions
-that blow up after the back-transform — a classic failure mode that tree models
+that blow up after the back-transform, a classic failure mode that tree models
 sidestep entirely. See [`notes/learn.md`](notes/learn.md) for the full explanation.
 
 ---
@@ -33,18 +33,18 @@ sidestep entirely. See [`notes/learn.md`](notes/learn.md) for the full explanati
 
 A 4-page interactive Streamlit app that walks through the entire ML pipeline:
 
-1. **Project Overview** — KPI cards, tech stack, and the headline result
-2. **Explore the Data** — interactive Plotly charts: duration distribution, rush hour patterns, route-type comparisons, correlation matrix
-3. **Model Results** — model comparison table, top-15 feature importances, predicted-vs-actual scatter, and a **live prediction form** where you pick a pickup zone, dropoff zone, hour, and day → instant ETA
-4. **How I Built This** — architecture diagram, day-by-day timeline, key decisions, and lessons learned
+1. **Project Overview**: KPI cards, tech stack, and the headline result
+2. **Explore the Data**: interactive Plotly charts: duration distribution, rush hour patterns, route-type comparisons, correlation matrix
+3. **Model Results**: model comparison table, top-15 feature importances, predicted-vs-actual scatter, and a **live prediction form** where you pick a pickup zone, dropoff zone, hour, and day → instant ETA
+4. **How I Built This**: architecture diagram, day-by-day timeline, key decisions, and lessons learned
 
 The full project is built around 5 production-grade pieces:
 
 - **Data quality gate** with 5 automated checks (schema, row count, nulls, ranges, target distribution)
-- **Feature engineering** producing 34 features across 3 categories — temporal (cyclic sin/cos hour encoding, rush-hour flags), geospatial (Manhattan/airport zone flags, CBD congestion fee), interaction (distance × rush hour, fare-per-mile congestion proxy)
-- **Model comparison** with 5-fold cross-validation — Linear Regression, Ridge, LightGBM
+- **Feature engineering** producing 34 features across 3 categories, temporal (cyclic sin/cos hour encoding, rush-hour flags), geospatial (Manhattan/airport zone flags, CBD congestion fee), interaction (distance × rush hour, fare-per-mile congestion proxy)
+- **Model comparison** with 5-fold cross-validation, Linear Regression, Ridge, LightGBM
 - **Hyperparameter tuning** with Optuna Bayesian search (30 trials, MLflow-tracked)
-- **Tests + CI** — 8 pytest tests + GitHub Actions running on every push
+- **Tests + CI**, 8 pytest tests + GitHub Actions running on every push
 
 ---
 
@@ -63,7 +63,7 @@ The full project is built around 5 production-grade pieces:
 
 ## How to Run
 
-### Option 1 — Docker (recommended)
+### Option 1: Docker (recommended)
 
 ```bash
 docker compose up
@@ -71,7 +71,7 @@ docker compose up
 
 Open http://localhost:8501. The container mounts `data/` and `models/` from your host, so the live predictor uses the real trained LightGBM model.
 
-### Option 2 — Local Python
+### Option 2: Local Python
 
 ```bash
 # 1. Install dependencies (Python 3.11+)
@@ -127,7 +127,7 @@ ruff check src/ app/    # lint
 
 ---
 
-## The Journey — 6 Days, End to End
+## The Journey: 6 Days, End to End
 
 | Day | Stage | Key Output |
 |---|---|---|
@@ -138,7 +138,7 @@ ruff check src/ app/    # lint
 | **5** | Interactive dashboard | 4-page Streamlit app with live predictor and 25 popular NYC zones |
 | **6** | Production hardening | Dockerized, 8 pytest tests, GitHub Actions CI passing on every push |
 
-A complete plain-English walkthrough — written for someone new to ML — lives in
+A complete plain-English walkthrough, written for someone new to ML, lives in
 [`notes/learn.md`](notes/learn.md).
 
 ---
@@ -147,10 +147,10 @@ A complete plain-English walkthrough — written for someone new to ML — lives
 
 ### 1. The baseline isn't as bad as MAE suggests
 
-Linear Regression hits R² = 0.761 in log-space — meaning the *shape* of its
+Linear Regression hits R² = 0.761 in log-space, meaning the *shape* of its
 predictions tracks duration well. But MAE in seconds is **77 minutes**, because
 a small log-space error explodes after `expm1()`. Tree models (LightGBM)
-don't have this back-transform problem — their predictions are bounded by
+don't have this back-transform problem, their predictions are bounded by
 training-data leaf values. This is the actual reason most production
 duration/price prediction models use trees, not linear regression.
 
@@ -200,7 +200,7 @@ Raw TLC parquet (3.72M rows)
 
 ## Data Source
 
-NYC Taxi & Limousine Commission Trip Record Data — January 2026 Yellow Taxi trips
+NYC Taxi & Limousine Commission Trip Record Data, January 2026 Yellow Taxi trips
 (3,724,889 raw records). Available at
 [nyc.gov/tlc](https://www.nyc.gov/site/tlc/about/tlc-trip-record-data.page).
 
@@ -210,4 +210,4 @@ The TLC data is in the public domain.
 
 ## License
 
-MIT — feel free to fork, learn from, or build on this project.
+MIT, feel free to fork, learn from, or build on this project.

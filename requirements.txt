@@ -24,6 +24,7 @@ great-expectations>=0.18.0
 
 # Visualization
 plotly>=5.22.0
+statsmodels>=0.14.0      # required for Plotly trendline="ols" in the EDA page
 
 # Testing
 pytest>=8.2.0

@@ -10,12 +10,12 @@
       "winner": false
     },
     {
-      "name": "Ridge Regression",
-      "r2": 0.761,
-      "mae_sec": 4666.39,
-      "mae_min": 77.8,
-      "rmse_log": 0.347,
-      "description": "Linear + L2 regularization (essentially identical to baseline)",
+      "name": "Decision Tree",
+      "r2": 0.9756,
+      "mae_sec": 69.93,
+      "mae_min": 1.2,
+      "rmse_log": 0.1109,
+      "description": "A single tree, captures non-linearities but coarse predictions.",
       "winner": false
     },
     {
@@ -24,7 +24,7 @@
       "mae_sec": 55.05,
       "mae_min": 0.9,
       "rmse_log": 0.0935,
-      "description": "Gradient boosted trees \u2014 captures non-linear patterns",
+      "description": "Hundreds of trees averaged together. Smoother and more accurate.",
       "winner": true
     }
   ],

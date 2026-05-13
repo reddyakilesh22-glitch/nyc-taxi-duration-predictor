@@ -146,8 +146,21 @@ st.markdown(f"""
     max-width: 1200px;
 }}
 .stApp [data-testid="stHeader"] {{ background: transparent; }}
-.stApp [data-testid="stToolbar"] {{ display: none; }}
-#MainMenu, footer {{ visibility: hidden; }}
+/* Hide only the Cloud "Deploy" button and 3-dot menu, not the whole
+   toolbar - the sidebar collapse arrow lives in that region. */
+.stDeployButton, [data-testid="stDeployButton"] {{ display: none !important; }}
+#MainMenu {{ visibility: hidden; }}
+footer {{ visibility: hidden; }}
+/* Ensure the sidebar collapse / expand control is always reachable. */
+[data-testid="collapsedControl"],
+[data-testid="stSidebarCollapsedControl"] {{
+    display: block !important;
+    visibility: visible !important;
+}}
+[data-testid="collapsedControl"] button,
+[data-testid="stSidebarCollapsedControl"] button {{
+    color: {INK} !important;
+}}
 
 /* ---- Sidebar ----------------------------------------------------------- */
 [data-testid="stSidebar"] {{ background: {WHITE}; }}
@@ -218,7 +231,6 @@ h1, h2, h3, h4 {{
 /* Hero */
 .hero {{
     padding: 24px 0 36px;
-    animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1);
 }}
 .hero-eyebrow {{
     display: inline-flex;
@@ -293,12 +305,7 @@ h1, h2, h3, h4 {{
                 box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
                 border-color 0.25s ease;
     height: 100%;
-    animation: fadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) backwards;
 }}
-.kpi:nth-child(1) {{ animation-delay: 0.05s; }}
-.kpi:nth-child(2) {{ animation-delay: 0.12s; }}
-.kpi:nth-child(3) {{ animation-delay: 0.19s; }}
-.kpi:nth-child(4) {{ animation-delay: 0.26s; }}
 .kpi:hover {{
     border-color: #D7D2C8;
     transform: translateY(-2px);
@@ -561,6 +568,78 @@ h1, h2, h3, h4 {{
 }}
 .prediction-context svg {{ color: {ACCENT_DARK}; }}
 
+/* Dual result: duration + fare side-by-side */
+.result-card {{
+    background: linear-gradient(180deg, {WHITE} 0%, {CREAM} 100%);
+    border: 1px solid {BORDER};
+    border-radius: 20px;
+    padding: 32px 28px;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}}
+.result-card:hover {{
+    border-color: #D7D2C8;
+    box-shadow: 0 16px 40px rgba(29, 29, 31, 0.05);
+}}
+.result-row {{
+    display: grid;
+    grid-template-columns: 1fr 1px 1fr;
+    gap: 24px;
+    align-items: center;
+}}
+.result-divider {{ background: {BORDER}; height: 64px; align-self: center; }}
+.result-block {{ text-align: center; }}
+.result-label {{
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: {SLATE};
+}}
+.result-value {{
+    font-size: 48px;
+    font-weight: 600;
+    letter-spacing: -0.028em;
+    color: {INK};
+    line-height: 1;
+    margin: 10px 0 4px;
+    font-variant-numeric: tabular-nums;
+    animation: numberReveal 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}}
+.result-unit {{
+    font-size: 22px;
+    color: {SLATE};
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}}
+.result-caption {{
+    font-size: 12px;
+    color: {SLATE};
+    margin-top: 2px;
+}}
+.result-meta {{
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid {DIVIDER};
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+}}
+.meta-chip {{
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: {WHITE};
+    border: 1px solid {BORDER};
+    border-radius: 100px;
+    font-size: 12px;
+    font-weight: 500;
+    color: {GRAPHITE};
+}}
+.meta-chip-warn {{ background: {ACCENT_SOFT}; border-color: #E5D9B8; color: {ACCENT_DARK}; }}
+.meta-chip svg {{ color: inherit; }}
+
 .factor-row {{
     display: flex;
     align-items: flex-start;
@@ -668,10 +747,6 @@ h1, h2, h3, h4 {{
 }}
 
 /* ---- Animations -------------------------------------------------------- */
-@keyframes fadeUp {{
-    from {{ opacity: 0; transform: translateY(8px); }}
-    to   {{ opacity: 1; transform: translateY(0); }}
-}}
 @keyframes numberReveal {{
     from {{ opacity: 0; transform: translateY(6px); letter-spacing: -0.02em; }}
     to   {{ opacity: 1; transform: translateY(0); letter-spacing: -0.03em; }}
@@ -758,12 +833,21 @@ def load_model():
         return joblib.load(path)
     return None
 
+@st.cache_data
+def load_zone_pairs():
+    """Median distance and fare per (PU, DO) zone pair from January 2026 trips."""
+    path = APP_DIR / "zone_pairs.json"
+    if path.exists():
+        with open(path) as f:
+            return json.load(f)
+    return {}
+
 
 def _demo_model_results():
     return {
         "models": [
             {"name": "Linear Regression", "r2": 0.761, "mae_sec": 4667.0, "mae_min": 77.8, "rmse_log": 0.347,  "description": "Baseline, straight-line relationships only.",   "winner": False},
-            {"name": "Ridge Regression",  "r2": 0.761, "mae_sec": 4666.0, "mae_min": 77.8, "rmse_log": 0.347,  "description": "Linear + L2, near-identical to baseline.",      "winner": False},
+            {"name": "Decision Tree",     "r2": 0.976, "mae_sec": 69.93,  "mae_min": 1.2,  "rmse_log": 0.111,  "description": "A single tree, captures non-linearities but coarse predictions.", "winner": False},
             {"name": "LightGBM",          "r2": 0.983, "mae_sec": 55.0,   "mae_min": 0.9,  "rmse_log": 0.0935, "description": "Gradient boosted trees.",                       "winner": True},
         ],
         "feature_importances": {"DOLocationID": 12880, "PULocationID": 10014, "fare_per_mile": 8780, "trip_distance": 4824, "hour": 1934},
@@ -856,83 +940,68 @@ def page_title(title: str, icon_key: str, caption: str = None):
 
 # Pages
 def page_overview():
-    results = load_model_results()
-    stats   = results["stats"]
+    results     = load_model_results()
+    stats       = results["stats"]
+    zone_pairs  = load_zone_pairs()
+    prod_bundle = load_model()
 
+    # ── Hero ─────────────────────────────────────────────────────────────────
     st.markdown(f"""
     <div class="hero">
         <div class="hero-eyebrow">{icon('spark', size=12, color=ACCENT_DARK)}<span>ML Portfolio Project</span></div>
-        <h1 class="hero-title">NYC taxi trip duration, predicted before the meter starts.</h1>
-        <p class="hero-subtitle">An end-to-end machine learning pipeline trained on 2.38 million cleaned January 2026 yellow taxi trips. Average error: about one minute.</p>
+        <h1 class="hero-title">Know how long your NYC taxi ride will take, before it starts.</h1>
+        <p class="hero-subtitle">Pick a pickup zone, a dropoff zone, and a time. The model returns a duration prediction with a typical fare for the route, drawn from 2.38 million January 2026 trips.</p>
     </div>
     """, unsafe_allow_html=True)
 
-    section("Key numbers", "compass")
+    # ── Live predictor (headline feature) ────────────────────────────────────
+    section("Predict your trip", "play")
+    _render_live_predictor(zone_pairs, prod_bundle)
+
+    # ── Proof: KPI cards ─────────────────────────────────────────────────────
+    section("How accurate is it", "results")
     c1, c2, c3, c4 = st.columns(4)
-
     with c1:
-        st.markdown(f"""
-        <div class="kpi">
-            <div class="kpi-label">{icon('layers', size=12, color=SLATE)}<span>Trips analyzed</span></div>
-            <div class="kpi-value">2.38M</div>
-            <div class="kpi-delta">January 2026 NYC TLC data</div>
-        </div>""", unsafe_allow_html=True)
-
-    with c2:
-        st.markdown(f"""
-        <div class="kpi">
-            <div class="kpi-label">{icon('filter', size=12, color=SLATE)}<span>Features engineered</span></div>
-            <div class="kpi-value">{stats['n_features']}</div>
-            <div class="kpi-delta">from 19 raw columns</div>
-        </div>""", unsafe_allow_html=True)
-
-    with c3:
-        st.markdown(f"""
-        <div class="kpi">
-            <div class="kpi-label">{icon('results', size=12, color=SLATE)}<span>Model R²</span></div>
-            <div class="kpi-value">{stats['best_r2']:.3f}</div>
-            <div class="kpi-delta">explains {stats['best_r2']*100:.1f}% of variation</div>
-        </div>""", unsafe_allow_html=True)
-
-    with c4:
-        improvement = (stats['baseline_mae_min'] - stats['best_mae_min']) / stats['baseline_mae_min'] * 100
         st.markdown(f"""
         <div class="kpi">
             <div class="kpi-label">{icon('clock', size=12, color=SLATE)}<span>Average error</span></div>
             <div class="kpi-value">~{stats['best_mae_min']:.0f} min</div>
-            <div class="kpi-delta"><span class="kpi-delta-up">↑ {improvement:.0f}%</span> vs baseline</div>
+            <div class="kpi-delta">on 475k unseen test trips</div>
+        </div>""", unsafe_allow_html=True)
+    with c2:
+        improvement = (stats['baseline_mae_min'] - stats['best_mae_min']) / stats['baseline_mae_min'] * 100
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">{icon('arrow', size=12, color=SLATE)}<span>vs baseline</span></div>
+            <div class="kpi-value">{improvement:.0f}%</div>
+            <div class="kpi-delta">lower error than linear regression</div>
+        </div>""", unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">{icon('layers', size=12, color=SLATE)}<span>Trips trained on</span></div>
+            <div class="kpi-value">2.38M</div>
+            <div class="kpi-delta">January 2026 NYC TLC data</div>
+        </div>""", unsafe_allow_html=True)
+    with c4:
+        st.markdown(f"""
+        <div class="kpi">
+            <div class="kpi-label">{icon('filter', size=12, color=SLATE)}<span>Features used</span></div>
+            <div class="kpi-value">{stats['n_features']}</div>
+            <div class="kpi-delta">from 19 raw columns</div>
         </div>""", unsafe_allow_html=True)
 
+    # ── Tech context (secondary, below the fold) ─────────────────────────────
     col_left, col_right = st.columns([3, 2], gap="large")
-
     with col_left:
-        section("What this project does", "lightbulb")
+        section("How it works", "lightbulb")
         st.markdown("""
-This project answers a question every NYC taxi passenger asks: **how long will this take?**
+The model is a **LightGBM gradient boosting regressor** trained on raw NYC TLC yellow taxi records cleaned down to 2.38 million high-quality trips. Inputs include the pickup and dropoff zones, time of day with cyclic encoding, day of week, borough flags, and an interaction term that captures how rush hour compounds with distance.
 
-Starting from raw TLC trip records, the pipeline cleans 3.7 million trips down to a clean 2.38 million, engineers 34 domain-aware features (rush hour flags, borough signals, cyclic time encoding), and trains a LightGBM model that predicts trip duration before the taxi moves.
+Predictions come back in under a tenth of a second. The typical fare shown next to the duration is the median actual fare paid on that route in January 2026, not a model output, so the dollar figure reflects what real riders paid.
 
-The result: an average error of about one minute, good enough to set accurate ETA expectations, optimize dispatch routing, and power real-time fare estimates.
+For the full breakdown of every step from raw data to deployment, see the **How I built this** page.
         """)
-
-        section("Pipeline overview", "loop")
-        st.markdown('<div class="pipeline-row pipeline-header"><div>Stage</div><div>Input</div><div>Output</div><div>Key result</div></div>', unsafe_allow_html=True)
-        pipeline = [
-            ("Day 1", "Data cleaning",        "3.72M raw rows",   "2.38M clean rows",       "Removed 36% bad data"),
-            ("Day 2", "Exploratory analysis", "2.38M clean rows", "Insights + decisions",   "Log transform + rush hour"),
-            ("Day 3", "Feature engineering",  "19 raw columns",   "34 engineered features", "Cyclic time, borough flags"),
-            ("Day 4", "Model training",       "34 features",      "3 trained models",       "R² 0.761 → 0.983"),
-        ]
-        for day, stage, inp, outp, result in pipeline:
-            st.markdown(f"""
-            <div class="pipeline-row">
-                <div class="pipeline-cell" style="color:{ACCENT};font-weight:600;font-size:12px;letter-spacing:0.08em;text-transform:uppercase;">{day}</div>
-                <div class="pipeline-stage">{stage}<div class="pipeline-cell" style="font-weight:400;color:{SLATE};font-size:12px;">{inp}</div></div>
-                <div class="pipeline-cell">{outp}</div>
-                <div class="pipeline-cell" style="color:{INK};">{result}</div>
-            </div>
-            """, unsafe_allow_html=True)
-
     with col_right:
         section("Tech stack", "code")
         tech = {
@@ -948,24 +1017,108 @@ The result: an average error of about one minute, good enough to set accurate ET
             badges = "".join(f'<span class="pill">{t}</span>' for t in tools)
             st.markdown(badges, unsafe_allow_html=True)
 
-        section("Model performance", "results")
-        models = results["models"]
-        names  = [m["name"].replace(" ", "<br>") for m in models]
-        maes   = [m["mae_min"] for m in models]
-        colors = [ACCENT if m.get("winner") else BORDER for m in models]
-        text   = [f"{m['mae_min']:.1f} min" for m in models]
-
-        fig = go.Figure(go.Bar(
-            x=names, y=maes,
-            marker=dict(color=colors, line=dict(width=0)),
-            text=text, textposition="outside",
-            textfont=dict(color=INK, size=12, family=PLOTLY_FONT["family"]),
-        ))
-        fig.update_layout(yaxis_title="MAE (minutes, log scale)", yaxis_type="log")
-        style_chart(fig, height=290, show_legend=False)
-        st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
-
     _footer()
+
+
+def _render_live_predictor(zone_pairs: dict, prod_bundle):
+    """Side-by-side predictor: 4 inputs on the left, duration + fare on the right."""
+
+    col_form, col_result = st.columns([5, 4], gap="large")
+
+    with col_form:
+        c1, c2 = st.columns(2)
+        with c1: pu_name = st.selectbox("Pickup",  ZONE_NAMES, index=0, key="ov_pu")
+        with c2: do_name = st.selectbox("Dropoff", ZONE_NAMES, index=2, key="ov_do")
+
+        c3, c4 = st.columns(2)
+        with c3: hour = st.slider("Pickup hour", 0, 23, 8, key="ov_hour")
+        with c4:
+            dow_label = st.selectbox("Day of week", DAYS, key="ov_day")
+            dow = DAYS.index(dow_label)
+
+    with col_result:
+        pu_id, do_id = POPULAR_ZONES[pu_name], POPULAR_ZONES[do_name]
+
+        # Look up distance + fare from real January 2026 trips on this route
+        pair = zone_pairs.get(str(pu_id), {}).get(str(do_id))
+        if pair:
+            distance  = float(pair["distance"])
+            fare_est  = float(pair["fare"])
+            has_route = True
+        else:
+            # Same-zone or rare pair: rough fallback so the predictor never breaks
+            distance  = 0.5 if pu_id == do_id else 3.0
+            fare_est  = 3.00 + 3.50 * distance
+            has_route = False
+
+        # Run the model
+        if prod_bundle is None:
+            st.warning("Model file not found. Run `python src/models/run_training.py` to enable predictions.")
+            return
+
+        model        = prod_bundle["model"]
+        feature_cols = prod_bundle["feature_cols"]
+        row          = build_input_row(pu_id, do_id, distance, hour, dow, 1, fare_est)
+
+        input_df = pd.DataFrame([row])[feature_cols]
+        for col in CATEGORICAL_FEATURES:
+            if col in input_df.columns:
+                input_df[col] = input_df[col].astype("category")
+
+        pred_log = model.predict(input_df)[0]
+        pred_sec = float(np.expm1(pred_log))
+        pred_min = pred_sec / 60
+
+        # Format duration nicely
+        if pred_min >= 60:
+            h = int(pred_min // 60)
+            m = int(round(pred_min - h * 60))
+            duration_value = f"{h}<span class='result-unit'>h</span> {m}<span class='result-unit'>m</span>"
+        else:
+            duration_value = f"{pred_min:.0f}<span class='result-unit'> min</span>"
+
+        # Context chip (rush hour, late night, airport, etc.)
+        chips = []
+        if 7 <= hour <= 9 and dow < 5:
+            chips.append(("alert", "AM rush", True))
+        elif 16 <= hour <= 19 and dow < 5:
+            chips.append(("alert", "PM rush", True))
+        elif hour >= 22 or hour <= 5:
+            chips.append(("moon", "Late night", False))
+        else:
+            chips.append(("check", "Off-peak", False))
+
+        if pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES:
+            chips.append(("plane", "Airport route", False))
+        if pu_id == do_id:
+            chips.append(("loop", "Same zone", False))
+
+        chip_html = "".join(
+            f'<span class="meta-chip{" meta-chip-warn" if warn else ""}">'
+            f'{icon(ic, 12)}{label}</span>'
+            for ic, label, warn in chips
+        )
+
+        fare_caption = "median of actual trips" if has_route else "estimated from rate"
+
+        st.markdown(f"""
+        <div class="result-card">
+            <div class="result-row">
+                <div class="result-block">
+                    <div class="result-label">Estimated duration</div>
+                    <div class="result-value">{duration_value}</div>
+                    <div class="result-caption">predicted by LightGBM</div>
+                </div>
+                <div class="result-divider"></div>
+                <div class="result-block">
+                    <div class="result-label">Typical fare</div>
+                    <div class="result-value">${fare_est:.2f}</div>
+                    <div class="result-caption">{fare_caption}</div>
+                </div>
+            </div>
+            <div class="result-meta">{chip_html}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
 
 def page_explore():
@@ -1182,7 +1335,6 @@ def page_explore():
 def page_models():
     results     = load_model_results()
     predictions = load_predictions()
-    prod_bundle = load_model()
 
     page_title("Model results", "results")
 
@@ -1204,7 +1356,7 @@ def page_models():
                 f'{tag_html}'
                 f'</div>'
                 f'<div style="font-size:18px;font-weight:600;color:{r2_color};font-variant-numeric:tabular-nums;">'
-                f'R² = {m["r2"]:.3f}'
+                f'R² = {m["r2"]:.2f}'
                 f'</div>'
                 f'</div>'
                 f'<div style="color:{SLATE};font-size:13px;margin-top:6px;">{m["description"]}</div>'
@@ -1212,7 +1364,7 @@ def page_models():
                 f'<span style="color:{SLATE};">MAE</span> '
                 f'<span style="color:{INK};font-weight:500;font-variant-numeric:tabular-nums;">{m["mae_min"]:.1f} min</span>'
                 f'<span style="color:{SLATE};margin-left:12px;">RMSE (log)</span> '
-                f'<span style="color:{INK};font-weight:500;font-variant-numeric:tabular-nums;">{m["rmse_log"]:.3f}</span>'
+                f'<span style="color:{INK};font-weight:500;font-variant-numeric:tabular-nums;">{m["rmse_log"]:.2f}</span>'
                 f'</div>'
                 f'</div>'
             )
@@ -1224,7 +1376,7 @@ def page_models():
             x=[m["name"].replace(" ", "<br>") for m in models],
             y=[m["r2"] for m in models],
             marker=dict(color=colors, line=dict(width=0)),
-            text=[f"{m['r2']:.3f}" for m in models],
+            text=[f"{m['r2']:.2f}" for m in models],
             textposition="outside",
             textfont=dict(color=INK, size=12, family=PLOTLY_FONT["family"]),
         ))
@@ -1277,112 +1429,15 @@ def page_models():
         style_chart(fig, height=440, show_legend=False)
         st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
-    st.markdown("<hr>", unsafe_allow_html=True)
-    section("Try it yourself", "play")
-
-    if prod_bundle is None:
-        st.warning("Model file not found. Run `python src/models/run_training.py` first to enable live predictions.")
-        _footer()
-        return
-
-    model        = prod_bundle["model"]
-    feature_cols = prod_bundle["feature_cols"]
-
-    col_form, col_result = st.columns([2, 1], gap="large")
-
-    with col_form:
-        c1, c2 = st.columns(2)
-        with c1: pu_name = st.selectbox("Pickup location",  ZONE_NAMES, index=0)
-        with c2: do_name = st.selectbox("Dropoff location", ZONE_NAMES, index=2)
-
-        c3, c4 = st.columns(2)
-        with c3: distance  = st.slider("Trip distance (miles)", 0.5, 25.0, 3.0, 0.5)
-        with c4: passengers = st.slider("Passengers", 1, 6, 1)
-
-        c5, c6 = st.columns(2)
-        with c5: hour = st.slider("Pickup hour", 0, 23, 8)
-        with c6:
-            dow_label = st.selectbox("Day of week", DAYS)
-            dow = DAYS.index(dow_label)
-
-        fare_est = st.slider("Estimated fare ($)", 5.0, 100.0,
-                             float(round(2.5 + distance * 2.5, 1)), 0.5,
-                             help="Base rate is roughly $2.50 + $2.50/mile. Used to compute the fare-per-mile congestion signal.")
-
-    with col_result:
-        pu_id = POPULAR_ZONES[pu_name]
-        do_id = POPULAR_ZONES[do_name]
-        row   = build_input_row(pu_id, do_id, distance, hour, dow, passengers, fare_est)
-
-        input_df = pd.DataFrame([row])[feature_cols]
-        for col in CATEGORICAL_FEATURES:
-            if col in input_df.columns:
-                input_df[col] = input_df[col].astype("category")
-
-        pred_log = model.predict(input_df)[0]
-        pred_sec = float(np.expm1(pred_log))
-        pred_min = pred_sec / 60
-
-        if pred_min >= 60:
-            h = int(pred_min // 60)
-            m = int(round(pred_min - h * 60))
-            time_str = f"{h}h {m}m"
-            sub_str  = f"{pred_min:.0f} minutes total"
-        else:
-            time_str = f"{pred_min:.1f}"
-            sub_str  = "minutes"
-
-        if 7 <= hour <= 9 and dow < 5:
-            ctx_icon, ctx_text = "alert", "AM rush, expect delays"
-        elif 16 <= hour <= 19 and dow < 5:
-            ctx_icon, ctx_text = "alert", "PM rush, expect delays"
-        elif hour >= 22 or hour <= 5:
-            ctx_icon, ctx_text = "moon", "Late night, roads are clear"
-        else:
-            ctx_icon, ctx_text = "check", "Off-peak hours"
-
-        airport_html = ""
-        if pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES:
-            airport_html = f'<div class="prediction-context" style="margin-left:6px;background:{SOFT};color:{GRAPHITE};">{icon("plane", 12, GRAPHITE)}Airport trip</div>'
-
-        st.markdown(f"""
-        <div class="prediction">
-            <div class="prediction-label">Estimated trip duration</div>
-            <div class="prediction-value">{time_str}<span style="font-size:24px;color:{SLATE};font-weight:500;letter-spacing:-0.01em;"> {'min' if pred_min < 60 else ''}</span></div>
-            <div class="prediction-sub">{sub_str}</div>
-            <div class="prediction-context">{icon(ctx_icon, 12, ACCENT_DARK)}{ctx_text}</div>
-            {airport_html}
+    st.markdown(f"""
+    <div class="callout" style="margin-top: 28px;">
+        <div class="callout-title">{icon('play', 14)}Want to try the model on a real trip?</div>
+        <div class="callout-body">
+            The live predictor lives on the <b>Overview</b> page. Pick a pickup zone, a dropoff zone, hour, and day,
+            and the model returns an estimated duration with the typical fare for that route.
         </div>
-        """, unsafe_allow_html=True)
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
-        if pu_id == do_id:
-            route_str = "Same zone, very short trip"
-        else:
-            pu_loc = "Manhattan" if pu_id in MANHATTAN_ZONES else "Outer borough"
-            do_loc = "Manhattan" if do_id in MANHATTAN_ZONES else "Outer borough"
-            route_str = f"{pu_loc} to {do_loc}, {distance:.1f} miles"
-
-        time_str_factor = f"{'Rush hour' if (7<=hour<=9 or 16<=hour<=19) and dow<5 else 'Off-peak'}, {dow_label} {hour:02d}:00"
-
-        factors = [
-            ("pin",      "Route", route_str),
-            ("clock",    "Time",  time_str_factor),
-        ]
-        if pu_id in AIRPORT_ZONES or do_id in AIRPORT_ZONES:
-            factors.append(("plane", "Airport leg", "Highway routing, faster per mile"))
-
-        for icon_key, label, value in factors:
-            st.markdown(f"""
-            <div class="factor-row">
-                <div class="factor-icon">{icon(icon_key, 14, ACCENT_DARK)}</div>
-                <div>
-                    <div class="factor-label">{label}</div>
-                    <div class="factor-value">{value}</div>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
+    </div>
+    """, unsafe_allow_html=True)
 
     _footer()
 
@@ -1429,7 +1484,7 @@ def page_how_built():
             ("Day 3", "Feature engineering",
              "Engineered 34 features across 3 categories: temporal (cyclic hour and day encoding, rush hour flags), geospatial (Manhattan and airport zones, same-zone trips), and interaction (distance times rush hour). Feature selection dropped 5 redundant columns."),
             ("Day 4", "Model training and tuning",
-             "Compared LinearRegression (MAE 77.8 min), Ridge (similar), and LightGBM (MAE 0.9 min) with 5-fold cross-validation. MLflow logged all runs. Optuna searched 30 hyperparameter combinations using Bayesian optimization."),
+             "Compared LinearRegression (MAE 77.8 min), a single Decision Tree (MAE 1.2 min), and LightGBM (MAE 0.9 min) with 5-fold cross-validation. MLflow logged all runs. Optuna searched 30 hyperparameter combinations using Bayesian optimization."),
             ("Day 5", "Portfolio app",
              "Built this 4-page Streamlit app. Live prediction form lets users input any NYC route and get an instant duration estimate using the production LightGBM model."),
             ("Day 6", "Production hardening",
@@ -1525,7 +1580,7 @@ def main():
         st.markdown("""
         <div class="sidebar-stats">
             <div class="row"><span>Model</span><strong>LightGBM</strong></div>
-            <div class="row"><span>R²</span><strong>0.983</strong></div>
+            <div class="row"><span>R²</span><strong>0.98</strong></div>
             <div class="row"><span>MAE</span><strong>~1 min</strong></div>
             <div class="row"><span>Data</span><strong>2.38M trips</strong></div>
         </div>

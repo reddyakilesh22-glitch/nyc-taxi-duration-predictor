@@ -1,4 +1,4 @@
-# Days 1–5 Explained: Plain English
+# Days 1-7 Explained: Plain English
 
 ---
 
@@ -18,7 +18,7 @@ Day 1 was that inspection step.
 
 ## The Three Files and What They Did
 
-### `loader.py` - \"Let me see what I have"
+### `loader.py` - "Let me see what I have"
 
 This was your first look at the data. Like opening a box you've never seen before and taking inventory.
 
@@ -36,7 +36,7 @@ It answered five questions:
 
 ---
 
-### `quality.py` - \"Turn that inspection into automatic checks"
+### `quality.py` - "Turn that inspection into automatic checks"
 
 Manually reading the loader output every time is fine once. But what about next month's data? And the month after?
 
@@ -69,7 +69,7 @@ statistics: counts and numbers
 
 ---
 
-### `cleaner.py` - \"Now actually fix the problems"
+### `cleaner.py` - "Now actually fix the problems"
 
 The quality gate found the problems. The cleaner fixes them.
 
@@ -338,8 +338,9 @@ Say you have 5 trips:
 MAE = (2 + 3 + 0 + 5 + 3) / 5 = 2.6 minutes
 ```
 
-**Your results:**
-- LinearRegression MAE = **4667 seconds = 77.8 minutes** ⚠️ (see note below)
+**Your results across the three models:**
+- LinearRegression MAE = **4667 seconds = 77.8 minutes** (see note below)
+- DecisionTree MAE = **70 seconds = 1.2 minutes**
 - LightGBM MAE = **55 seconds = 0.9 minutes**
 
 ### Why the LinearRegression number looks insane
@@ -398,14 +399,17 @@ This is your floor. Any real model must beat this.
 | R² | What it means |
 |---|---|
 | 1.0 | Perfect, predicted every trip exactly right |
-| 0.978 | Explains 97.8% of why trips differ in duration |
-| 0.589 | Explains 58.9% of why trips differ in duration |
+| 0.98 | Explains 98% of why trips differ in duration |
+| 0.76 | Explains 76% of why trips differ in duration |
 | 0.0 | Exactly as good as guessing the average every time |
 | Below 0 | Worse than guessing the average (something is very wrong) |
 
 **Your results:**
-- LinearRegression R² = **0.761**
-- LightGBM R² = **0.983**
+- LinearRegression R² = **0.76**
+- DecisionTree R² = **0.98**
+- LightGBM R² = **0.98**
+
+(DecisionTree and LightGBM tie in log-space at 2 decimal places, but LightGBM wins on MAE in seconds because an ensemble of trees produces smoother predictions than a single tree's coarse step-wise output.)
 
 ### A concrete example
 
@@ -417,18 +421,26 @@ Your data has two trips:
 **LinearRegression:** guesses 10 min and 20 min. Better, but misses the rush hour effect.
 **LightGBM:** guesses 6.5 min and 34 min. Almost exactly right.
 
-R² captures how much of the gap between Trip A and Trip B your model explains. LightGBM explains almost all of it (0.978). LinearRegression only explains about half (0.589).
+R² captures how much of the gap between Trip A and Trip B your model explains. LightGBM explains almost all of it (0.98). LinearRegression only explains about three-quarters (0.76).
 
 ---
 
-## Why LightGBM Won by Such a Large Margin
+## Why LightGBM Won: A Three-Step Story
+
+The three models tell a clear progression in modeling power.
+
+### Step 1: Linear Regression cannot capture non-linearity
 
 Linear models assume straight-line relationships. They think "more distance = proportionally more time." But reality is not a straight line:
 
 - A 2-mile trip at 3am = 6 minutes
 - A 2-mile trip at 8am in Midtown = 35 minutes
 
-LightGBM builds a tree of decisions:
+Same distance, totally different duration. Linear regression has no way to express that.
+
+### Step 2: A single Decision Tree fixes that
+
+A tree builds a flowchart of yes/no questions:
 ```
 Is it rush hour?
   Yes → Is it Manhattan?
@@ -436,7 +448,25 @@ Is it rush hour?
                   Yes → predict 30+ minutes
 ```
 
-Those branching decisions capture what linear models can't. That's why the gap is so large.
+Now the model can say "if rush hour AND Manhattan AND >1 mile, predict 30+ minutes" without ever needing a straight line. A single tree gets us from MAE = 77.8 min down to **MAE = 1.2 min**. Most of the heavy lifting in our model is right here.
+
+But a single tree has a limit: its predictions are **coarse**. Every leaf gives one fixed number. So if your tree has 1,000 leaves, it can only produce 1,000 distinct predictions, regardless of the input.
+
+### Step 3: An ensemble of trees smooths everything out
+
+LightGBM is **gradient boosting**: build a tree, look at where it's wrong, build another tree that corrects those mistakes, repeat hundreds of times. The final prediction is the sum of all the trees' contributions.
+
+Because hundreds of trees vote together, the model can produce thousands or millions of distinct predictions, not just a fixed set of leaves. That smoothness is what takes us from MAE = 1.2 min (single tree) down to **MAE = 0.9 min** (ensemble).
+
+### The takeaway
+
+```
+Linear         MAE = 77.8 min   straight lines only
+Decision Tree  MAE =  1.2 min   non-linearities, but coarse
+LightGBM       MAE =  0.9 min   non-linearities AND smooth
+```
+
+The huge gap is between Linear and the tree models, not between Decision Tree and LightGBM. That's the right intuition to walk away with: **once you can express non-linearity, you've crossed the important threshold**. Going from single tree to ensemble is a meaningful refinement, not a revolution.
 
 ---
 
@@ -501,11 +531,11 @@ That's called Grid Search. It's exhaustive and very slow. If you have 9 hyperpar
 Optuna doesn't try everything blindly. It learns from each attempt:
 
 ```
-Trial 1:  learning_rate=0.08, num_leaves=200 → R²=0.971
-Trial 2:  learning_rate=0.03, num_leaves=150 → R²=0.975   ← better! Focus here
-Trial 3:  learning_rate=0.02, num_leaves=160 → R²=0.976   ← still improving
+Trial 1:  learning_rate=0.08, num_leaves=200 → R²=0.97
+Trial 2:  learning_rate=0.03, num_leaves=150 → R²=0.98   ← better! Focus here
+Trial 3:  learning_rate=0.02, num_leaves=160 → R²=0.98   ← still improving
 ...
-Trial 30: learning_rate=0.019, num_leaves=155 → R²=0.978  ← final best
+Trial 30: learning_rate=0.019, num_leaves=155 → R²=0.98  ← final best
 ```
 
 Each trial looks at what worked before and chooses the next combination that's most likely to improve. It's like a researcher who reads past experiment notes before designing the next one, not someone who just tries random settings.
@@ -539,8 +569,8 @@ Each tree only looks at a random subset of features. This forces the model to le
 After 3 hours of tuning (30 trials × 5-fold CV on 300k rows), the result was:
 
 ```
-Default LightGBM:  R² = 0.9778,  MAE = 59.16s
-Tuned LightGBM:    R² = 0.9774,  MAE = 59.50s
+Default LightGBM:  R² = 0.98,  MAE = 59.16s
+Tuned LightGBM:    R² = 0.98,  MAE = 59.50s
 
 (Note: this was on the older January 2024 dataset. We did not re-tune on the 2026 data; based on the prior result it's unlikely to change the conclusion.)
 ```
@@ -602,7 +632,7 @@ The app is structured like a portfolio website, not a dashboard. Each page answe
 
 If a hiring manager spends 30 seconds on your portfolio, this page is what they see. So it has to land fast:
 - A bold hero with the project name
-- 4 KPI cards: 2.38M trips, 34 features, R² 0.983, ~1 min average error
+- 4 KPI cards: 2.38M trips, 34 features, R² 0.98, ~1 min average error
 - A 2-sentence description of what the model does
 - The tech stack as little badges (LightGBM, Optuna, MLflow, etc.)
 
@@ -627,7 +657,7 @@ The point isn't just to show charts, it's to walk a visitor through the discover
 Two halves:
 
 **Top half, comparison and accuracy:**
-- Cards for each model tried (Linear, Ridge, LightGBM default, LightGBM tuned) with their scores
+- Cards for each model tried (Linear, Decision Tree, LightGBM) with their scores
 - A "predicted vs actual" scatter plot, points clustered along the diagonal = good predictions
 - A bar chart of which features mattered most
 
@@ -721,14 +751,347 @@ This kind of bug doesn't show up in any tutorial. They show up when you build re
 
 ---
 
-# The Through-Line Across All Five Days
+# Day 6: Docker, Tests, and CI/CD
+
+## What Were We Actually Doing?
+
+By the end of Day 5, you had a working app on your laptop. Good for showing yourself. Useless for anyone else.
+
+Day 6 was about making the project **shippable**. Three pieces:
+
+1. **Docker** so the app runs the same way on any computer, not just yours
+2. **Tests** so you'd know if a future change broke something
+3. **CI/CD** so those tests run automatically every time you push to GitHub
+
+This is the difference between "I built a model" and "I built a project a team could trust."
+
+---
+
+## Part 1: Docker, or "Works on My Machine, Solved"
+
+Every developer has lived through this conversation:
+
+> "It works on my laptop."
+> "It doesn't work on my laptop."
+> "Did you install Python 3.11?"
+> "Yes."
+> "What about pandas 2.2?"
+> "Let me check..."
+> *(four hours later)*
+
+Docker fixes this by packaging your entire app, **including the operating system, the Python version, the libraries, everything**, into one portable file called an "image". Anyone can run that image on any computer and get exactly the same result.
+
+Think of it like a sealed lunchbox vs. a recipe. A recipe says "use bread, ham, mustard." A lunchbox already has the sandwich made. Hand the lunchbox to anyone and they get the same sandwich.
+
+### What the Dockerfile actually says
+
+Our `Dockerfile` is 25 lines. In plain English it says:
 
 ```
-Day 1:  Raw messy data   →  Clean usable data       (removed 9.3% bad rows)
-Day 2:  Numbers          →  Visual understanding    (found log transform + rush hour signal)
-Day 3:  Raw columns      →  Meaningful signals      (20 columns → 32 engineered features)
-Day 4:  Features         →  Predictions             (MAE 77.8 min → 0.9 min)
-Day 5:  A model file     →  A working product       (4-page site with live predictions)
+Start from a clean Linux box with Python 3.11.
+Install libgomp1 (LightGBM needs it).
+Copy requirements.txt and pip install everything.
+Copy src/, app/, and setup.py into the box.
+Open port 8501 so the outside world can reach Streamlit.
+When the box starts, run streamlit on the app.
+```
+
+To use it:
+```bash
+docker build -t nyc-taxi-duration .   # build the lunchbox
+docker compose up                      # open it and serve
+```
+
+Open http://localhost:8501 and your app is running, but this time inside a container that you could ship to AWS, a colleague's laptop, or any cloud platform without changing a single line of code.
+
+**Why this matters for hiring:** "I can dockerize my projects" is table-stakes for most ML / data engineering roles. It tells a hiring manager you've thought about how your code leaves your laptop.
+
+---
+
+## Part 2: Tests, or "How Will You Know Something Broke?"
+
+You spent five days carefully building a pipeline. Now imagine you add a new feature next month. How do you know you didn't accidentally break the cleaner, the feature engineering, or the model?
+
+**You write tests.**
+
+A test is just a small piece of code that says "given this input, the function should produce that output." If a future change makes the function produce something different, the test fails and you know immediately.
+
+We wrote 8 tests across 3 files:
+
+### `tests/test_data_quality.py` (3 tests)
+
+Tests for the data quality gate:
+
+- **Passes on clean data:** Make a small fake dataset that looks like good taxi data. Quality gate should approve it.
+- **Catches too-few-rows:** Make a dataset with only 5 rows. Quality gate should reject it.
+- **Catches missing columns:** Drop a required column. Quality gate should reject it.
+
+### `tests/test_features.py` (3 tests)
+
+Tests for feature engineering:
+
+- **All expected columns produced:** Run `create_features()` on synthetic data. Check that all 21 new feature columns appear.
+- **No NaNs:** Engineered features must be non-null. The model can't handle NaNs.
+- **Ranges are correct:** Cyclic encodings stay in [-1, 1], binary flags stay in {0, 1}, hours stay in 0-23.
+
+### `tests/test_model.py` (2 tests)
+
+Tests for the model:
+
+- **A tiny LightGBM trains and predicts:** Sanity check that the training stack works even without your real data files.
+- **The production model loads and predicts in range:** Load the actual `production_model.pkl`. Build a typical NYC trip input. Verify the prediction is between 3 and 60 minutes (not 38 days).
+
+### Running them
+
+```bash
+pytest tests/ -v
+```
+
+You see:
+```
+tests/test_data_quality.py ... 3 passed
+tests/test_features.py     ... 3 passed
+tests/test_model.py        ... 2 passed
+8 passed in 3.2s
+```
+
+Green. If anything goes red, you fix it before merging.
+
+**The deeper point:** Tests are how you sleep at night. Without them, every code change is a roll of the dice. With them, you know the moment something breaks.
+
+---
+
+## Part 3: CI/CD, or "A Robot That Checks Your Work"
+
+OK so you have tests. Great. Will you remember to run them before every commit? Be honest. No, you won't. Nobody does.
+
+**CI/CD (Continuous Integration / Continuous Deployment)** is a robot that runs your tests *for you*, automatically, every time you push code to GitHub.
+
+We used **GitHub Actions**, which is free for public repos. Here's the flow:
+
+```
+You push code to GitHub.
+       ↓
+GitHub Actions wakes up.
+       ↓
+Spins up a fresh Linux box.
+       ↓
+Installs Python 3.11, then pip install -r requirements.txt.
+       ↓
+Runs pytest tests/ -v.
+       ↓
+Runs ruff check src/ app/ tests/ (the linter).
+       ↓
+Reports back: green checkmark or red X.
+```
+
+This happens every push, every pull request. You never have to remember.
+
+### What our workflow does
+
+The file `.github/workflows/ci.yml` defines two jobs that run in parallel:
+
+**Job 1: Test**
+- Set up Python 3.11
+- pip install everything
+- pytest tests/ -v
+
+**Job 2: Lint**
+- Set up Python 3.11
+- pip install ruff
+- Check for real bugs (undefined names, unused imports, syntax errors) but don't nitpick style
+
+Total time: about 3 minutes per push.
+
+### What the green checkmark means
+
+When both jobs pass, GitHub shows a green checkmark next to your commit. That checkmark also appears on your README as a badge:
+
+```markdown
+[![CI](https://github.com/.../actions/workflows/ci.yml/badge.svg)](...)
+```
+
+A green CI badge on a GitHub repo is a credibility signal. It says: "my tests pass, my code lints, you can trust this isn't held together with duct tape."
+
+---
+
+## What Day 6 Actually Bought You
+
+By the end of Day 6:
+
+- The app runs identically on any computer with Docker (no more "works on my machine")
+- 8 automated tests catch broken code before it hits main
+- Every push is verified automatically by a GitHub robot
+- The README has a green CI badge that anyone can see
+
+The project went from "a folder of code" to "something that looks production-grade." Same model, same data, dramatically different perception.
+
+---
+
+# Day 7: Deploying, Polishing, and Going Public
+
+## What Were We Actually Doing?
+
+Day 6 made the project shippable. Day 7 was about actually shipping it.
+
+Three buckets of work:
+
+1. **Switch the data** from January 2024 to January 2026 (the newest available)
+2. **Deploy** to Streamlit Community Cloud so the app has a real public URL
+3. **Polish** the design to look professional, not like a generic SaaS dashboard
+
+By the end of the day, you had a link you could send to anyone. That's the difference between a personal project and a portfolio piece.
+
+---
+
+## Part 1: Refreshing the Data
+
+The model was trained on January 2024 data. Fine for a learning project. Less impressive on a resume in 2026.
+
+So we deleted everything from 2023, 2024, and 2025 (21 GB across multiple vehicle types) and ran the entire pipeline on **January 2026** yellow taxi data instead.
+
+This was the cleanest test of the whole project: was the pipeline truly reproducible, or did it secretly depend on specific quirks of the 2024 data?
+
+### What changed and what didn't
+
+| | January 2024 | January 2026 |
+|---|---|---|
+| Raw rows | 2.96M | 3.72M |
+| After cleaning | 2.69M | 2.38M |
+| Removed | 9.3% | 36% |
+| Features | 32 | 34 |
+| Best R² | 0.98 | 0.98 |
+| Best MAE | 1.0 min | 0.9 min |
+
+Two interesting findings:
+
+**The 2026 data was dirtier.** 36% of raw rows got removed in cleaning vs. 9.3% in 2024. The 2026 file has way more nulls in `passenger_count` and `RatecodeID`. The cleaner caught all of it without any code changes, which is exactly what a good cleaner should do.
+
+**The model got slightly better.** R² went from 0.98 to 0.98, and MAE dropped from 1.0 min to 0.9 min. Two new features that NYC introduced (`cbd_congestion_fee` for the Manhattan congestion charge, and `fare_amount` getting kept this time because correlation patterns shifted) carried real signal.
+
+### The baseline blow-up
+
+One thing did change dramatically: the linear regression baseline went from MAE = 6.1 min (2024) to **MAE = 77.8 min (2026)**. Same model, same features, same code.
+
+Why? Linear regression on a `log(duration)` target can predict log values like 12 or 15, which exponentiate into days. A handful of these blown-up predictions dragged the test MAE into the 70-minute range. Tree models (LightGBM) don't have this problem because their predictions are bounded by training-data leaf values.
+
+This is the **actual reason** production duration / price prediction models use trees, not linear regression. We didn't hide it. We documented it.
+
+---
+
+## Part 2: Deploying to Streamlit Community Cloud
+
+Until Day 7, the only way to see the app was to clone the repo and run it locally. Useless for sharing.
+
+Streamlit Community Cloud is a free hosting service from the makers of Streamlit. It connects to a GitHub repo, watches the `main` branch, and rebuilds the app automatically every time you push.
+
+### How the deploy works
+
+1. Sign in to share.streamlit.io with GitHub
+2. Click "New app"
+3. Point it at your repo, the `main` branch, and `app/streamlit_app.py`
+4. Click "Deploy"
+
+About 5 minutes later, you have a permanent URL like `https://nyc-taxi-duration-predictor.streamlit.app`. Anyone can open it. No login. No setup. Just works.
+
+### The catch: cloud has no access to your laptop
+
+This is where it got interesting. Streamlit Cloud only sees what's in your **GitHub repo**. Your local `data/` and `models/` folders are gitignored (rightly so, they're huge). So when the app booted in the cloud, it had no model file and no features data.
+
+The live predictor crashed. The EDA page crashed.
+
+### Two fixes
+
+**Fix 1: Bundle the production model.** Updated `.gitignore` to allow exactly one file:
+```
+/models/*
+!/models/production_model.pkl
+```
+This commits just the 6.7 MB production model to GitHub, nothing else. The live predictor works in the cloud.
+
+**Fix 2: Pre-sample the features parquet.** The full features file is 58 MB, large enough to trigger GitHub's "this file is huge" warning. So we sampled 50,000 rows into a 0.4 MB `app/eda_sample.parquet` and bundled that instead. The EDA page reads from the sample. Same insights, 145x smaller file.
+
+### A real production debug
+
+When the EDA page first loaded on the cloud, it crashed with:
+```
+ModuleNotFoundError: No module named 'statsmodels'
+```
+
+The Plotly trendline feature (`trendline="ols"`) needs statsmodels, which was installed in the local conda environment but not pinned in `requirements.txt`. Locally everything worked; in the cloud's clean Python environment it broke.
+
+Fix: add `statsmodels>=0.14.0` to requirements.txt. Push. Streamlit Cloud auto-redeployed, and the EDA page came back.
+
+**The lesson:** "It works in my environment" hides which dependencies are actually required. Your `requirements.txt` is your contract with the deploy target. Anything imported anywhere in the codebase, even by a library you call, must be listed.
+
+---
+
+## Part 3: Polishing the Design
+
+The default app looked like every other Streamlit dashboard: loud yellow accents, dark navy hero, emoji icons, default fonts. It worked but it felt cheap.
+
+Day 7 was a from-scratch redesign with one rule: **make it look like Apple made it, not like a SaaS template.**
+
+### The new design system
+
+**Palette.** Out: bright `#F7C948` and dark `#1A1A2E`. In:
+- White surfaces (`#FFFFFF`)
+- A warm off-white page background (`#FAFAF8`)
+- Soft secondary surfaces (`#F4F3EF`)
+- Barely-visible borders (`#ECEAE5`)
+- One refined amber accent (`#B8943F`) used sparingly
+
+The whole site wears white, then softer white, then a single accent color where it earns its place. Like apple.com.
+
+**Typography.** SF Pro / system stack with tight letter-spacing on headings (-0.018em to -0.028em), tabular numerals for metrics, wide tracking on small uppercase labels. Restraint, not loudness.
+
+**No emoji as icons.** Built a registry of 26 custom inline SVG icons, stroke-based at 1.6px width with rounded line caps. They use `currentColor` so the same icon can be ink, accent, or slate depending on context. Used in the sidebar brand, page heads, section eyebrows, KPI labels, callouts, prediction chips, factor rows, and timeline dots.
+
+**Micro-interactions.** Things that move when you touch them, not before:
+- Cards lift 1-2 pixels on hover with a soft shadow appearing
+- Slider thumbs scale 1.08 on hover
+- Timeline dots fill with the accent and scale 1.15 on hover
+- The prediction value plays a 500ms reveal animation each time it updates
+- Tabs underline slides smoothly between selections
+
+Nothing animates on page load. (More on why below.)
+
+### The page-flash bug
+
+The first version of the redesign had a subtle bug: clicking from "Overview" to "Explore the data" briefly flashed the Overview hero before showing Explore.
+
+The cause: Streamlit reruns the entire script on every interaction. While the new page renders, the old page's DOM is still visible. I had a 500ms page-entry animation on the hero, which delayed the new content from fully painting, making the flicker visible.
+
+Fix: remove page-entry animations entirely. Keep interaction animations (hover, slider, prediction reveal). Page swaps now feel instant.
+
+**The lesson:** Animations on page load fight reactive frameworks like Streamlit. Animations on user actions (hover, click, change) don't. Reserve motion for things the user is doing, not for things the framework is doing.
+
+---
+
+## What Day 7 Actually Shipped
+
+By the end:
+
+- A live URL anyone can visit
+- A model retrained on the latest available data
+- A design that looks intentional, not templated
+- A README with a green CI badge and headline numbers
+- Two honest writeups (baseline blow-up, Optuna didn't help)
+
+You can put this on a resume. You can send the link in a cover letter. You can share it on LinkedIn. That's a real portfolio piece.
+
+---
+
+# The Through-Line Across All Seven Days
+
+```
+Day 1:  Raw messy data       →  Clean usable data       (removed 36% bad rows)
+Day 2:  Numbers              →  Visual understanding    (log transform, rush hour signal)
+Day 3:  Raw columns          →  Meaningful signals      (19 columns → 34 engineered)
+Day 4:  Features             →  Predictions             (MAE 77.8 min → 0.9 min)
+Day 5:  A model file         →  A working product       (4-page site with live predictor)
+Day 6:  A local app          →  A shippable product     (Docker + tests + CI/CD)
+Day 7:  A repo on your laptop → A live public link      (deployed, polished, shareable)
 ```
 
 Each day built on the previous one:
@@ -737,7 +1100,9 @@ Each day built on the previous one:
 - Skip Day 3 → model misses rush hour patterns entirely
 - Skip Day 4 → you have features but no model
 - Skip Day 5 → you have a model but nobody can see or use it
+- Skip Day 6 → your project breaks the moment it leaves your laptop
+- Skip Day 7 → you have a polished local project that no one in the world can find
 
 The whole pipeline is a chain. Every link matters.
 
-**The big picture:** A real ML project isn't just "train a model." It's *get raw data → clean it → understand it → reshape it → train on it → tune it → ship it to users*. Five steps. Each one is its own discipline. Each one is what the next link depends on. That's the actual job.
+**The big picture:** A real ML project isn't just "train a model." It's *get raw data → clean it → understand it → reshape it → train on it → tune it → make it usable → make it reliable → make it public*. Seven steps. Each one is its own discipline. Each one is what the next link depends on. That's the actual job.

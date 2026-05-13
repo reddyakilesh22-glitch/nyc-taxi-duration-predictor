@@ -6,16 +6,14 @@ Each model is trained with 5-fold cross-validation so we know how
 consistent the score is, not just how lucky a single split was.
 
 Models compared:
-  1. LinearRegression  — baseline, no assumptions, good interpretability
-  2. Ridge             — LinearRegression + L2 regularization, handles correlated features
-  3. LightGBM          — gradient boosted trees, captures non-linear patterns,
-                         handles categoricals natively, scales to millions of rows
+  1. LinearRegression  - baseline, assumes straight-line relationships only.
+  2. DecisionTree      - a single tree, captures non-linearities but predictions are coarse.
+  3. LightGBM          - hundreds of trees averaged together (gradient boosting), smoother and more accurate.
 
 Why these three:
-  - Linear models are fast and interpretable but assume relationships are straight lines.
-    Rush hour doesn't linearly add time — it compounds. Trees capture that.
-  - LightGBM is the industry standard for tabular regression at scale.
-    It should win here. If it doesn't, our features might have an issue.
+  - Linear models can't capture non-linearities like rush hour compounding with distance.
+  - A single tree fixes that, but its predictions are step-wise (each leaf gives one value).
+  - LightGBM is an ensemble of trees, so it can produce smoother predictions and usually wins.
 
 Usage:
     python src/models/compare_models.py
@@ -28,9 +26,10 @@ import joblib
 import lightgbm as lgb
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import KFold, cross_val_score, train_test_split
+from sklearn.tree import DecisionTreeRegressor
 
 PROJECT_ROOT  = Path(__file__).parents[2]
 FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
@@ -111,10 +110,9 @@ def main():
 
     print(f"  Train: {len(X_train):,}  |  Test: {len(X_test):,}")
     print("\nWhy these 3 models:")
-    print("  LinearRegression — baseline, fast, interpretable, assumes linear relationships")
-    print("  Ridge            — adds L2 penalty to prevent overfitting on correlated features")
-    print("  LightGBM         — gradient boosted trees, captures non-linear patterns,")
-    print("                     native categoricals, industry standard for tabular data")
+    print("  LinearRegression - baseline, assumes straight-line relationships only.")
+    print("  DecisionTree     - a single tree, captures non-linearities (coarse).")
+    print("  LightGBM         - ensemble of trees, smoother and more accurate.")
 
     results = []
     trained_models = {}
@@ -126,12 +124,13 @@ def main():
     )
     results.append(row); trained_models["LinearRegression"] = (m, X_train.columns.tolist())
 
-    # 2. Ridge
+    # 2. Decision Tree (single tree, constrained so it generalises)
     row, m = train_and_evaluate(
-        "Ridge (α=1.0)", Ridge(alpha=1.0),
+        "DecisionTree",
+        DecisionTreeRegressor(max_depth=12, min_samples_leaf=200, random_state=42),
         X_train, X_test, y_train, y_test
     )
-    results.append(row); trained_models["Ridge"] = (m, X_train.columns.tolist())
+    results.append(row); trained_models["DecisionTree"] = (m, X_train.columns.tolist())
 
     # 3. LightGBM
     lgbm = lgb.LGBMRegressor(

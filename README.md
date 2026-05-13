@@ -17,7 +17,7 @@
 
 | | Baseline (Linear Regression) | **LightGBM (production model)** |
 |---|---|---|
-| **R² (log-space)** | 0.761 | **0.983** |
+| **R² (log-space)** | 0.76 | **0.98** |
 | **Mean Absolute Error** | 77.8 minutes¹ | **~1 minute** |
 | **Relative improvement** | - | **99% lower error** |
 
@@ -42,7 +42,7 @@ The full project is built around 5 production-grade pieces:
 
 - **Data quality gate** with 5 automated checks (schema, row count, nulls, ranges, target distribution)
 - **Feature engineering** producing 34 features across 3 categories, temporal (cyclic sin/cos hour encoding, rush-hour flags), geospatial (Manhattan/airport zone flags, CBD congestion fee), interaction (distance × rush hour, fare-per-mile congestion proxy)
-- **Model comparison** with 5-fold cross-validation, Linear Regression, Ridge, LightGBM
+- **Model comparison** with 5-fold cross-validation: Linear Regression, a single Decision Tree, LightGBM
 - **Hyperparameter tuning** with Optuna Bayesian search (30 trials, MLflow-tracked)
 - **Tests + CI**, 8 pytest tests + GitHub Actions running on every push
 
@@ -127,16 +127,17 @@ ruff check src/ app/    # lint
 
 ---
 
-## The Journey: 6 Days, End to End
+## The Journey: 7 Days, End to End
 
 | Day | Stage | Key Output |
 |---|---|---|
 | **1** | Data inspection & quality gate | Removed 36% bad rows (negative fares, 300k-mile trips, sub-60s trips, nulls) |
-| **2** | Exploratory data analysis | Found right-skewed target → log transform; rush hour adds 3–4 min |
-| **3** | Feature engineering | 20 raw columns → 34 engineered features (cyclic time, borough flags, interactions) |
-| **4** | Model training & tuning | LightGBM hit R²=0.983 / MAE=0.9min; baseline blew up to MAE=77min |
+| **2** | Exploratory data analysis | Found right-skewed target → log transform; rush hour adds 3 to 4 min |
+| **3** | Feature engineering | 19 raw columns → 34 engineered features (cyclic time, borough flags, interactions) |
+| **4** | Model training & tuning | LightGBM hit R²=0.98 / MAE=0.9min; baseline blew up to MAE=77min |
 | **5** | Interactive dashboard | 4-page Streamlit app with live predictor and 25 popular NYC zones |
 | **6** | Production hardening | Dockerized, 8 pytest tests, GitHub Actions CI passing on every push |
+| **7** | Deploy & polish | Public live URL on Streamlit Cloud, Apple Elegance design system, dual duration + fare predictor |
 
 A complete plain-English walkthrough, written for someone new to ML, lives in
 [`notes/learn.md`](notes/learn.md).
@@ -147,7 +148,7 @@ A complete plain-English walkthrough, written for someone new to ML, lives in
 
 ### 1. The baseline isn't as bad as MAE suggests
 
-Linear Regression hits R² = 0.761 in log-space, meaning the *shape* of its
+Linear Regression hits R² = 0.76 in log-space, meaning the *shape* of its
 predictions tracks duration well. But MAE in seconds is **77 minutes**, because
 a small log-space error explodes after `expm1()`. Tree models (LightGBM)
 don't have this back-transform problem, their predictions are bounded by
@@ -158,7 +159,7 @@ duration/price prediction models use trees, not linear regression.
 
 A previous run on the older 2024 data found that 30 Optuna trials over
 3 hours produced essentially no improvement over LightGBM's defaults
-(R² 0.9778 vs 0.9774). The lesson kept in the project: **good defaults +
+(R² 0.98 vs 0.98). The lesson kept in the project: **good defaults +
 thoughtful features beat blind hyperparameter search almost every time**.
 Optuna was not re-run on the 2026 data; based on the prior result it's
 unlikely to change the conclusion.
@@ -173,7 +174,7 @@ Raw TLC parquet (3.72M rows)
         ▼
    ┌──────────┐    ┌────────────────┐    ┌─────────────────┐
    │ Cleaning │ → │ Feature        │ → │ Training        │
-   │ (36%     │   │ engineering    │   │ (Linear, Ridge, │
+   │ (36%     │   │ engineering    │   │ (Linear, Tree,  │
    │ removed) │   │ (20→34 cols)   │   │ LightGBM)       │
    └──────────┘    └────────────────┘    └─────────────────┘
         │                  │                     │

@@ -24,9 +24,10 @@ import mlflow
 import mlflow.lightgbm
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge
+from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
+from sklearn.tree import DecisionTreeRegressor
 
 PROJECT_ROOT  = Path(__file__).parents[2]
 FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_features.parquet"
@@ -134,11 +135,19 @@ def main():
                         X_train, X_test, y_train, y_test, list(X_train.columns))
     all_results.append({"model": "baseline", **metrics})
 
-    # ── 2. Ridge ─────────────────────────────────────────────────────────────
-    params = {"model_type": "Ridge", "alpha": 1.0}
-    metrics = run_model("ridge", Ridge(alpha=1.0), params,
-                        X_train, X_test, y_train, y_test, list(X_train.columns))
-    all_results.append({"model": "ridge", **metrics})
+    # ── 2. Decision Tree ─────────────────────────────────────────────────────
+    # A single constrained tree. Shows the contrast between "no non-linearities"
+    # (linear regression), "non-linearities via a single tree", and "ensemble of
+    # trees" (LightGBM). max_depth and min_samples_leaf prevent the tree from
+    # memorising the 1.9M training rows.
+    params = {"model_type": "DecisionTree", "max_depth": 12, "min_samples_leaf": 200}
+    metrics = run_model(
+        "decision_tree",
+        DecisionTreeRegressor(max_depth=12, min_samples_leaf=200, random_state=42),
+        params,
+        X_train, X_test, y_train, y_test, list(X_train.columns),
+    )
+    all_results.append({"model": "decision_tree", **metrics})
 
     # ── 3. LightGBM (default params) ─────────────────────────────────────────
     lgbm_params = {

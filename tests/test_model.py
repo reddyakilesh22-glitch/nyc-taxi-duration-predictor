@@ -2,7 +2,7 @@
 Tests for model training and prediction.
 
 Two layers of testing:
-  1. Sanity tests that train a tiny LightGBM in-memory — these run anywhere
+  1. Sanity tests that train a tiny LightGBM in-memory, these run anywhere
      (CI, fresh clones) without needing the production model artifact.
   2. Integration tests that load models/production_model.pkl if it exists.
      These are skipped automatically when the artifact isn't available.
@@ -39,7 +39,7 @@ def test_lightgbm_trains_and_predicts():
 
 @pytest.mark.skipif(
     not PRODUCTION_MODEL.exists(),
-    reason="models/production_model.pkl not found — run src/models/run_training.py first",
+    reason="models/production_model.pkl not found, run src/models/run_training.py first",
 )
 def test_production_model_loads_and_predicts_in_range():
     """Load the real trained model and run a prediction for a typical NYC trip."""

@@ -79,7 +79,7 @@ pip install -r requirements.txt
 
 # 2. (Optional) Re-run the full pipeline from raw data
 python src/data/cleaner.py            # clean raw TLC parquet → cleaned.parquet
-python src/features/run_features.py   # engineer 32 features → features.parquet
+python src/features/run_features.py   # engineer 34 features → features.parquet
 python src/models/run_training.py     # train + log all models with MLflow
 python src/models/tuning.py           # 30-trial Optuna search (slow: ~3 hours)
 
@@ -133,7 +133,7 @@ ruff check src/ app/    # lint
 |---|---|---|
 | **1** | Data inspection & quality gate | Removed 36% bad rows (negative fares, 300k-mile trips, sub-60s trips, nulls) |
 | **2** | Exploratory data analysis | Found right-skewed target → log transform; rush hour adds 3 to 4 min |
-| **3** | Feature engineering | 19 raw columns → 34 engineered features (cyclic time, borough flags, interactions) |
+| **3** | Feature engineering | 20 raw columns → 34 engineered features (cyclic time, borough flags, interactions) |
 | **4** | Model training & tuning | LightGBM hit R²=0.98 / MAE=0.9min; baseline blew up to MAE=77min |
 | **5** | Interactive dashboard | 4-page Streamlit app with live predictor and 25 popular NYC zones |
 | **6** | Production hardening | Dockerized, 8 pytest tests, GitHub Actions CI passing on every push |

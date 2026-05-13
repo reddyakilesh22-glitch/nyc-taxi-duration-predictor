@@ -1,10 +1,10 @@
 """
-Day 3 — Feature Engineering
+Day 3: Feature Engineering
 
 Raw data columns are often poor model inputs. This module transforms them
 into signals that a model can learn from directly.
 
-Every feature here has a documented reason (the WHY) — that's intentional.
+Every feature here has a documented reason (the WHY), that's intentional.
 If you can't explain why a feature should predict trip duration, it probably
 won't help and might hurt by adding noise.
 
@@ -41,9 +41,9 @@ MANHATTAN_ZONES = set(range(4, 153)) | {161, 162, 163, 164, 166, 170, 186,
 def create_features(df: pd.DataFrame) -> pd.DataFrame:
     """
     Engineer 12+ features across 3 categories:
-      1. Temporal — when the trip happened
-      2. Domain (geospatial) — where and route type
-      3. Interaction — combinations that matter more together than alone
+      1. Temporal, when the trip happened
+      2. Domain (geospatial), where and route type
+      3. Interaction, combinations that matter more together than alone
 
     Args:
         df: Cleaned DataFrame with tpep_pickup_datetime, PULocationID,
@@ -56,14 +56,14 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     pickup = df["tpep_pickup_datetime"]
 
     # ── Category 1: Temporal Features ────────────────────────────────────────
-    # WHY: Traffic volume — and therefore trip duration — follows strong daily
+    # WHY: Traffic volume, and therefore trip duration, follows strong daily
     # and weekly cycles. A model needs these patterns explicitly.
 
     df["hour"] = pickup.dt.hour
     df["day_of_week"] = pickup.dt.dayofweek   # 0=Monday, 6=Sunday
     df["month"] = pickup.dt.month
 
-    # WHY: Cyclic encoding — hour 23 and hour 0 are only 1 hour apart, but
+    # WHY: Cyclic encoding, hour 23 and hour 0 are only 1 hour apart, but
     # numerically they're 23 apart. Sin/cos encoding wraps the scale so the
     # model sees them as close. Without this, the model thinks midnight is
     # the most different time from 11pm.
@@ -72,14 +72,14 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     df["dow_sin"]  = np.sin(2 * np.pi * df["day_of_week"] / 7)
     df["dow_cos"]  = np.cos(2 * np.pi * df["day_of_week"] / 7)
 
-    # WHY: Rush hours have the biggest effect on duration — more cars on road.
+    # WHY: Rush hours have the biggest effect on duration, more cars on road.
     # AM rush: 7–9am weekdays. PM rush: 4–7pm weekdays.
     is_weekday = df["day_of_week"] < 5
     df["is_am_rush"] = (is_weekday & df["hour"].between(7, 9)).astype("int8")
     df["is_pm_rush"] = (is_weekday & df["hour"].between(16, 19)).astype("int8")
     df["is_rush_hour"] = ((df["is_am_rush"] == 1) | (df["is_pm_rush"] == 1)).astype("int8")
 
-    # WHY: Weekends have different traffic patterns — less commuter traffic
+    # WHY: Weekends have different traffic patterns, less commuter traffic
     # but more leisure trips. Trips on weekends tend to be shorter.
     df["is_weekend"] = (df["day_of_week"] >= 5).astype("int8")
 
@@ -91,13 +91,13 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
 
     # ── Category 2: Domain (Geospatial) Features ─────────────────────────────
     # WHY: Where a trip starts and ends tells you about expected traffic.
-    # Manhattan is the most congested borough — pickups there add time.
+    # Manhattan is the most congested borough, pickups there add time.
 
     df["is_pu_manhattan"] = df["PULocationID"].isin(MANHATTAN_ZONES).astype("int8")
     df["is_do_manhattan"] = df["DOLocationID"].isin(MANHATTAN_ZONES).astype("int8")
 
     # WHY: Airport trips have fixed long distances and often use highways.
-    # They behave very differently from city trips — often faster per mile.
+    # They behave very differently from city trips, often faster per mile.
     df["is_airport_trip"] = (
         df["PULocationID"].isin(ALL_AIRPORT_ZONES) |
         df["DOLocationID"].isin(ALL_AIRPORT_ZONES)
@@ -121,7 +121,7 @@ def create_features(df: pd.DataFrame) -> pd.DataFrame:
     # ── Category 3: Interaction Features ─────────────────────────────────────
     # WHY: Interaction features capture cases where two things together
     # matter more than either alone. A long trip during rush hour is much
-    # worse than a long trip at 3am — the distance × rush hour product
+    # worse than a long trip at 3am, the distance × rush hour product
     # captures that compounding effect.
 
     # WHY: A long trip during rush hour is disproportionately slow.
@@ -145,7 +145,7 @@ def select_features(df: pd.DataFrame) -> tuple[list[str], pd.DataFrame]:
 
     Two removal rules:
       1. Correlation > 0.95 between two features → drop the second one
-         (they carry the same information — keeping both is redundant)
+         (they carry the same information, keeping both is redundant)
       2. Variance < 1% of average feature variance → drop
          (nearly constant columns teach the model nothing)
 

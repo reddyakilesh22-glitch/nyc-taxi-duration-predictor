@@ -1,5 +1,5 @@
 """
-Day 1 — Data Loader & Quality Gate
+Day 1: Data Loader & Quality Gate
 
 This script answers the most important question before any ML work:
 "Is my data actually usable?"
@@ -131,7 +131,7 @@ def inspect_key_columns(df: pd.DataFrame):
 
 def main():
     print("=" * 50)
-    print("NYC TAXI DATA — QUALITY GATE")
+    print("NYC TAXI DATA, QUALITY GATE")
     print("=" * 50)
 
     df = load_sample()

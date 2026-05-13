@@ -1,8 +1,8 @@
 """
-Day 1 — Data Quality Gate
+Day 1: Data Quality Gate
 
 Runs 5 automated checks on a DataFrame and returns a structured result.
-Think of this as a smoke alarm for your data — it doesn't fix anything,
+Think of this as a smoke alarm for your data, it doesn't fix anything,
 it just tells you whether something is wrong before you waste time on it.
 
 Usage:
@@ -23,7 +23,7 @@ REQUIRED_COLUMNS = {
     "trip_distance":         "float64",
 }
 
-TARGET_COLUMN = "duration_sec"   # computed by cleaner.py — not in raw data yet
+TARGET_COLUMN = "duration_sec"   # computed by cleaner.py, not in raw data yet
 
 
 def check_data_quality(df: pd.DataFrame) -> dict:
@@ -44,11 +44,11 @@ def check_data_quality(df: pd.DataFrame) -> dict:
 
     # ── Check 1: Schema Validation ───────────────────────────────────────────
     # Do the required columns exist? Are they the right type?
-    # Wrong types cause silent bugs — e.g., a date stored as a string won't
+    # Wrong types cause silent bugs, e.g., a date stored as a string won't
     # let you subtract timestamps to get duration.
     missing_cols = [c for c in REQUIRED_COLUMNS if c not in df.columns]
     if missing_cols:
-        failures.append(f"Check 1 FAIL — Missing required columns: {missing_cols}")
+        failures.append(f"Check 1 FAIL, Missing required columns: {missing_cols}")
     else:
         wrong_types = []
         for col, expected in REQUIRED_COLUMNS.items():
@@ -57,7 +57,7 @@ def check_data_quality(df: pd.DataFrame) -> dict:
             if not actual.startswith(expected.split("[")[0].rstrip("0123456789")):
                 wrong_types.append(f"{col}: expected {expected}, got {actual}")
         if wrong_types:
-            warnings.append(f"Check 1 WARN — Unexpected dtypes: {wrong_types}")
+            warnings.append(f"Check 1 WARN, Unexpected dtypes: {wrong_types}")
         else:
             statistics["schema"] = "OK"
 
@@ -67,9 +67,9 @@ def check_data_quality(df: pd.DataFrame) -> dict:
     statistics["total_rows"] = total_rows
 
     if total_rows < 100:
-        failures.append(f"Check 2 FAIL — Only {total_rows} rows. Minimum required: 100.")
+        failures.append(f"Check 2 FAIL, Only {total_rows} rows. Minimum required: 100.")
     elif total_rows < 1_000:
-        warnings.append(f"Check 2 WARN — Only {total_rows:,} rows. Model quality may suffer.")
+        warnings.append(f"Check 2 WARN, Only {total_rows:,} rows. Model quality may suffer.")
     else:
         statistics["row_count"] = "OK"
 
@@ -84,9 +84,9 @@ def check_data_quality(df: pd.DataFrame) -> dict:
     high_nulls = null_pcts[(null_pcts > 20) & (null_pcts <= 50)]
 
     for col, pct in critical_nulls.items():
-        failures.append(f"Check 3 FAIL — '{col}' is {pct}% null (threshold: 50%)")
+        failures.append(f"Check 3 FAIL, '{col}' is {pct}% null (threshold: 50%)")
     for col, pct in high_nulls.items():
-        warnings.append(f"Check 3 WARN — '{col}' is {pct}% null (threshold: 20%)")
+        warnings.append(f"Check 3 WARN, '{col}' is {pct}% null (threshold: 20%)")
 
     # ── Check 4: Value Ranges ────────────────────────────────────────────────
     # Physically impossible values corrupt model training.
@@ -109,7 +109,7 @@ def check_data_quality(df: pd.DataFrame) -> dict:
         pct = bad_count / total_rows * 100
         if pct > 1.0:
             warnings.append(
-                f"Check 4 WARN — {bad_count:,} rows ({pct:.1f}%) have {label}"
+                f"Check 4 WARN, {bad_count:,} rows ({pct:.1f}%) have {label}"
             )
 
     statistics["value_range_issues"] = range_stats
@@ -117,7 +117,7 @@ def check_data_quality(df: pd.DataFrame) -> dict:
     # ── Check 5: Target Distribution ────────────────────────────────────────
     # For our regression target (duration_sec): we check it exists and isn't
     # degenerate (all zeros, all the same value, or wildly out of range).
-    # Unlike classification, we don't check class balance — we check spread.
+    # Unlike classification, we don't check class balance, we check spread.
     if TARGET_COLUMN in df.columns:
         target = df[TARGET_COLUMN].dropna()
         target_stats = {
@@ -129,15 +129,15 @@ def check_data_quality(df: pd.DataFrame) -> dict:
         statistics["target_distribution"] = target_stats
 
         if target.std() == 0:
-            failures.append("Check 5 FAIL — Target 'duration_sec' has zero variance (all same value).")
+            failures.append("Check 5 FAIL, Target 'duration_sec' has zero variance (all same value).")
         if (target <= 0).mean() > 0.5:
-            failures.append("Check 5 FAIL — More than 50% of durations are zero or negative.")
+            failures.append("Check 5 FAIL, More than 50% of durations are zero or negative.")
         if target.max() > 86_400:
             warnings.append(
-                f"Check 5 WARN — Max duration is {target.max()/3600:.1f} hours. Outliers present."
+                f"Check 5 WARN, Max duration is {target.max()/3600:.1f} hours. Outliers present."
             )
     else:
-        # Target not present yet — that's fine before cleaning, just note it
+        # Target not present yet, that's fine before cleaning, just note it
         statistics["target_distribution"] = "Not computed yet (run cleaner.py first)"
 
     # ── Result ───────────────────────────────────────────────────────────────
@@ -160,12 +160,12 @@ def print_result(result: dict):
     print(f"  Rows checked: {result['statistics'].get('total_rows', '?'):,}")
 
     if result["failures"]:
-        print(f"\n  FAILURES ({len(result['failures'])}) — must fix before proceeding:")
+        print(f"\n  FAILURES ({len(result['failures'])}), must fix before proceeding:")
         for f in result["failures"]:
             print(f"    ✗ {f}")
 
     if result["warnings"]:
-        print(f"\n  WARNINGS ({len(result['warnings'])}) — should handle before modeling:")
+        print(f"\n  WARNINGS ({len(result['warnings'])}), should handle before modeling:")
         for w in result["warnings"]:
             print(f"    ⚠ {w}")
 

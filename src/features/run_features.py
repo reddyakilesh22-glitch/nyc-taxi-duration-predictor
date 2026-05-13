@@ -1,5 +1,5 @@
 """
-Day 3 — Feature Engineering Pipeline
+Day 3: Feature Engineering Pipeline
 
 Ties together create_features() and select_features() into a single
 reproducible script. Run this once per dataset to produce the feature

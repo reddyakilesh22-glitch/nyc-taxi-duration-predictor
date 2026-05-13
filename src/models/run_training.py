@@ -1,7 +1,7 @@
 """
-Day 4 — Full Training Pipeline with MLflow Experiment Tracking
+Day 4: Full Training Pipeline with MLflow Experiment Tracking
 
-MLflow logs every model run — params, metrics, and model artifacts.
+MLflow logs every model run, params, metrics, and model artifacts.
 This lets you compare runs in a visual UI at http://localhost:5000
 without losing track of what you tried.
 
@@ -198,7 +198,7 @@ def main():
     print(f"{'='*60}")
     df_res = pd.DataFrame(all_results)
     print(df_res.sort_values("r2", ascending=False).to_string(index=False))
-    print("\nAll runs logged to MLflow — run:")
+    print("\nAll runs logged to MLflow, run:")
     print("  mlflow server --host 127.0.0.1 --port 5000")
     print("  open http://localhost:5000")
 

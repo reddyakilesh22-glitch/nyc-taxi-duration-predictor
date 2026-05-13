@@ -1,8 +1,8 @@
 """
-Day 4 — Baseline Model
+Day 4: Baseline Model
 
 The simplest possible model: LinearRegression.
-This gives us a "floor" — every model we build after this must beat it,
+This gives us a "floor", every model we build after this must beat it,
 otherwise the added complexity isn't worth it.
 
 Key decision: we train on log1p(duration_sec) because duration is right-skewed
@@ -28,7 +28,7 @@ FEATURES_PATH = PROJECT_ROOT / "data" / "features" / "yellow_tripdata_2026-01_fe
 MODEL_DIR     = PROJECT_ROOT / "models"
 MODEL_DIR.mkdir(exist_ok=True)
 
-# Columns to drop — not features
+# Columns to drop, not features
 DROP_COLS = ["duration_sec", "tpep_pickup_datetime", "tpep_dropoff_datetime",
              "store_and_fwd_flag"]
 
@@ -61,7 +61,7 @@ def evaluate(model, X_test, y_test_log, label="Model"):
     r2       = r2_score(y_test_log, preds_log)
 
     print(f"\n{'='*45}")
-    print(f"  {label} — Test Set Results")
+    print(f"  {label}, Test Set Results")
     print(f"{'='*45}")
     print(f"  MAE   (seconds) : {mae_sec:>8.1f}s  = {mae_sec/60:.1f} min")
     print(f"  RMSE  (log)     : {rmse_log:>8.4f}")
@@ -76,7 +76,7 @@ def main():
     X, y = load_features()
     print(f"  {X.shape[0]:,} rows × {X.shape[1]} features")
 
-    # 80/20 split — random, not temporal, for comparability with guide
+    # 80/20 split, random, not temporal, for comparability with guide
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, random_state=42
     )

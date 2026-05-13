@@ -1,15 +1,15 @@
 """
-Day 4 — Hyperparameter Tuning with Optuna
+Day 4: Hyperparameter Tuning with Optuna
 
 LightGBM has many knobs. Wrong settings = underfit or overfit model.
-Optuna tries 30 combinations automatically using Bayesian search —
+Optuna tries 30 combinations automatically using Bayesian search -
 smarter than random search because each trial learns from the last.
 
 Key hyperparameters tuned:
-  num_leaves     — complexity of each tree (higher = more complex, more overfit risk)
-  learning_rate  — step size when learning (lower = more careful, needs more trees)
-  min_child_samples — minimum trips per tree leaf (higher = smoother, less overfit)
-  feature_fraction  — fraction of features used per tree (prevents feature dominance)
+  num_leaves    , complexity of each tree (higher = more complex, more overfit risk)
+  learning_rate , step size when learning (lower = more careful, needs more trees)
+  min_child_samples, minimum trips per tree leaf (higher = smoother, less overfit)
+  feature_fraction , fraction of features used per tree (prevents feature dominance)
 
 Usage:
     python src/models/tuning.py
@@ -83,7 +83,7 @@ def main():
     )
     print(f"  Train: {len(X_train):,}  |  Test: {len(X_test):,}")
 
-    # Sample for tuning — tune on 300k rows, train final model on full data.
+    # Sample for tuning, tune on 300k rows, train final model on full data.
     # This is standard practice: hyperparameters that work on a representative
     # sample generalise to the full dataset, and tuning is 7x faster.
     TUNE_SAMPLE = 300_000
@@ -133,7 +133,7 @@ def main():
     test_rmse = mean_squared_error(y_test, preds_log) ** 0.5
 
     print(f"\n{'='*45}")
-    print("  Tuned LightGBM — Final Test Results")
+    print("  Tuned LightGBM, Final Test Results")
     print(f"{'='*45}")
     print(f"  MAE  (seconds) : {test_mae:.1f}s = {test_mae/60:.1f} min")
     print(f"  RMSE (log)     : {test_rmse:.4f}")

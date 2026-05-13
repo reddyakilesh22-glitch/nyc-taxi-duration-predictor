@@ -1,7 +1,7 @@
 """
 Tests for feature engineering (src/features/engineering.py).
 
-These tests don't need real TLC data — a small synthetic dataframe shaped
+These tests don't need real TLC data, a small synthetic dataframe shaped
 like cleaned taxi data is enough to exercise create_features() end-to-end.
 """
 import numpy as np
@@ -46,7 +46,7 @@ def test_create_features_adds_expected_columns():
 
 
 def test_create_features_produces_no_nans():
-    """Engineered columns must be non-null — the model can't handle NaNs."""
+    """Engineered columns must be non-null, the model can't handle NaNs."""
     df = make_post_cleaning_dataframe()
     out = create_features(df)
     new_cols = [c for c in out.columns if c not in df.columns]

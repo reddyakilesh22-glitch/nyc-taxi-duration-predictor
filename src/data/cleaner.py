@@ -1,5 +1,5 @@
 """
-Day 1 — Data Cleaner
+Day 1: Data Cleaner
 
 Takes raw yellow taxi data and produces a clean version ready for
 feature engineering and model training.
@@ -43,12 +43,12 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     # ── Step 1: Compute the target variable ─────────────────────────────────
     # We're predicting trip duration, but it doesn't exist as a column yet.
     # We calculate it from pickup and dropoff timestamps.
-    # Result is in seconds — easier to work with than minutes for the model.
+    # Result is in seconds, easier to work with than minutes for the model.
     df = df.copy()
     df["duration_sec"] = (
         df["tpep_dropoff_datetime"] - df["tpep_pickup_datetime"]
     ).dt.total_seconds()
-    print("\nStep 1 — Computed duration_sec from timestamps")
+    print("\nStep 1, Computed duration_sec from timestamps")
 
     # ── Step 2: Drop rows where target is null or invalid ───────────────────
     # A row with no duration is useless for a duration-prediction model.
@@ -59,7 +59,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df = df[df["duration_sec"].notna()]
     df = df[df["duration_sec"].between(60, 10_800)]  # 1 min → 3 hours
     removed = before - len(df)
-    print(f"Step 2 — Dropped {removed:,} rows with null/invalid duration "
+    print(f"Step 2: Dropped {removed:,} rows with null/invalid duration "
           f"({removed/before*100:.1f}%)")
 
     # ── Step 3: Remove physically impossible values ──────────────────────────
@@ -73,7 +73,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df = df[df["fare_amount"] >= 0]              # no negative fares
     df = df[df["RatecodeID"].isin([1, 2, 3, 4, 5, 6]) | df["RatecodeID"].isna()]
     removed = before - len(df)
-    print(f"Step 3 — Dropped {removed:,} rows with impossible values "
+    print(f"Step 3: Dropped {removed:,} rows with impossible values "
           f"({removed/before*100:.1f}%)")
 
     # ── Step 4: Remove exact duplicates ─────────────────────────────────────
@@ -82,7 +82,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     before = len(df)
     df = df.drop_duplicates()
     removed = before - len(df)
-    print(f"Step 4 — Dropped {removed:,} exact duplicate rows "
+    print(f"Step 4: Dropped {removed:,} exact duplicate rows "
           f"({removed/before*100:.1f}%)")
 
     # ── Step 5: Handle nulls in feature columns ──────────────────────────────
@@ -98,7 +98,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     before = len(df)
     df = df.dropna(subset=["RatecodeID"])
     removed = before - len(df)
-    print(f"Step 5 — Filled nulls; dropped {removed:,} rows with null RatecodeID")
+    print(f"Step 5: Filled nulls; dropped {removed:,} rows with null RatecodeID")
 
     # ── Step 6: Enforce correct data types ───────────────────────────────────
     # Smaller int types save memory on 120M rows.
@@ -107,7 +107,7 @@ def clean_data(df: pd.DataFrame) -> tuple[pd.DataFrame, dict]:
     df["RatecodeID"]     = df["RatecodeID"].astype("int8")
     df["payment_type"]   = df["payment_type"].astype("int8")
     df["passenger_count"]= df["passenger_count"].astype("int8")
-    print("Step 6 — Enforced compact data types")
+    print("Step 6: Enforced compact data types")
 
     # ── Summary ───────────────────────────────────────────────────────────────
     final_rows = len(df)

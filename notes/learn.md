@@ -277,9 +277,9 @@ After creating 37 features, we ran two filters:
 
 **The result:**
 ```
-Started with:  37 features
-Dropped:        5 features  (redundant or useless)
-Kept:          32 features  (ready for model training)
+Started with:  38 features
+Dropped:        4 features  (redundant or useless)
+Kept:          34 features  (ready for model training)
 ```
 
 ---
@@ -691,7 +691,7 @@ So the predictor lets the visitor pick **just 6 simple things**:
 5. Day of week (Mon–Sun)
 6. Number of passengers (1–6)
 
-Then **behind the scenes**, the app **rebuilds all 32 features** from those 6 inputs, exactly the same way Day 3's feature engineering did during training:
+Then **behind the scenes**, the app **rebuilds all 34 features** from those 4 inputs, exactly the same way Day 3's feature engineering did during training:
 
 ```
 User picks: Midtown → JFK, 12 miles, 8am Monday, 1 passenger
@@ -1087,7 +1087,7 @@ You can put this on a resume. You can send the link in a cover letter. You can s
 ```
 Day 1:  Raw messy data       →  Clean usable data       (removed 36% bad rows)
 Day 2:  Numbers              →  Visual understanding    (log transform, rush hour signal)
-Day 3:  Raw columns          →  Meaningful signals      (19 columns → 34 engineered)
+Day 3:  Raw columns          →  Meaningful signals      (20 columns → 34 engineered)
 Day 4:  Features             →  Predictions             (MAE 77.8 min → 0.9 min)
 Day 5:  A model file         →  A working product       (4-page site with live predictor)
 Day 6:  A local app          →  A shippable product     (Docker + tests + CI/CD)

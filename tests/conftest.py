@@ -1,4 +1,4 @@
-"""Shared pytest setup — adds src/ to the import path."""
+"""Shared pytest setup, adds src/ to the import path."""
 import sys
 from pathlib import Path
 

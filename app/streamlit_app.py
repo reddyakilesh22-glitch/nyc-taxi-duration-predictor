@@ -988,7 +988,7 @@ def page_overview():
         <div class="kpi">
             <div class="kpi-label">{icon('filter', size=12, color=SLATE)}<span>Features used</span></div>
             <div class="kpi-value">{stats['n_features']}</div>
-            <div class="kpi-delta">from 19 raw columns</div>
+            <div class="kpi-delta">from 20 raw columns</div>
         </div>""", unsafe_allow_html=True)
 
     # ── Tech context (secondary, below the fold) ─────────────────────────────
@@ -1402,12 +1402,26 @@ def page_models():
         fi_df = pd.DataFrame(list(fi.items()), columns=["Feature", "Importance"])
         fi_df = fi_df.sort_values("Importance", ascending=True).tail(15)
 
-        fig = px.bar(fi_df, x="Importance", y="Feature", orientation="h",
-                     color="Importance",
-                     color_continuous_scale=[[0, BORDER], [1, ACCENT]])
-        fig.update_traces(marker_line_width=0)
+        # Per-bar color gradient (lightest at bottom, accent at top).
+        # We compute it ourselves instead of using color="Importance" because
+        # the px.bar continuous-color path creates an unnamed trace that
+        # Plotly's hover renders as literal "undefined".
+        max_imp = max(fi_df["Importance"]) if len(fi_df) else 1
+        bar_colors = [
+            f"rgba(184, 148, 63, {0.25 + 0.75 * (v / max_imp):.2f})"
+            for v in fi_df["Importance"]
+        ]
+
+        fig = go.Figure(go.Bar(
+            x=fi_df["Importance"],
+            y=fi_df["Feature"],
+            orientation="h",
+            marker=dict(color=bar_colors, line=dict(width=0)),
+            hovertemplate="<b>%{y}</b><br>Importance %{x:,}<extra></extra>",
+            name="",
+        ))
+        fig.update_layout(title="Feature importance (LightGBM)", yaxis_title="", xaxis_title="Importance")
         style_chart(fig, height=440, show_legend=False)
-        fig.update_layout(coloraxis_showscale=False, yaxis_title="")
         st.plotly_chart(fig, width="stretch", config={"displayModeBar": False})
 
     with col_res:

@@ -1,5 +1,5 @@
 """
-Day 4 — Model Comparison
+Day 4: Model Comparison
 
 We compare 3 models with reasoning, not just picking the best number.
 Each model is trained with 5-fold cross-validation so we know how

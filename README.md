@@ -7,7 +7,7 @@
 ![Docker](https://img.shields.io/badge/docker-ready-2496ED)
 
 > Predicts how long any NYC yellow-taxi trip will take, **before the meter starts**.
-> Uses only pickup zone, dropoff zone, time of day, and distance.
+> Pick a pickup zone, a dropoff zone, an hour, and a day. Get back a duration and a typical fare.
 
 **Live demo:** [https://nyc-taxi-duration-predictor.streamlit.app](https://nyc-taxi-duration-predictor.streamlit.app)
 

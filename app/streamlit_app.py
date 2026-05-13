@@ -1489,6 +1489,8 @@ def page_how_built():
              "Built this 4-page Streamlit app. Live prediction form lets users input any NYC route and get an instant duration estimate using the production LightGBM model."),
             ("Day 6", "Production hardening",
              "Containerized with Docker, wrote 8 pytest tests, set up GitHub Actions CI/CD for automated tests and lint on every push."),
+            ("Day 7", "Deploy and polish",
+             "Deployed to Streamlit Community Cloud with a public URL. Rebuilt the design system around an Apple-elegance palette with a custom SVG icon set, no emoji. Moved the live predictor to the Overview page and added a typical-fare estimate alongside the duration prediction, so the project actually delivers value the moment a visitor lands."),
         ]
         for day, title, desc in timeline:
             st.markdown(f"""

@@ -1,11 +1,10 @@
 # Sharing Copy
 
 Drop-in copy for LinkedIn, dev.to, your portfolio site, and recruiters.
-Swap `LIVE_URL` and `REPO_URL` with the real ones before posting.
+Live demo and repo links are filled in already, just copy and post.
 
-Replacements:
-- `LIVE_URL` = the Streamlit Community Cloud URL
-- `REPO_URL` = `https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor`
+- Live demo: https://nyc-taxi-duration-predictor.streamlit.app
+- Repo: https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor
 
 ---
 
@@ -26,7 +25,7 @@ returns:
     unseen test data)
   - Typical fare (median of actual trips paid on that route)
 
-Try it: LIVE_URL
+Try it: https://nyc-taxi-duration-predictor.streamlit.app
 
 The honest version of the story:
 
@@ -42,7 +41,7 @@ The honest version of the story:
    marginally worse than the default. Kept this in the writeup
    because pretending tuning always helps is selling a fairy tale.
 
-The repo: REPO_URL
+The repo: https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor
 
 Stack: Python, Pandas, LightGBM, Scikit-learn, Optuna, MLflow,
 Streamlit, Plotly, Docker, GitHub Actions, Streamlit Community Cloud.
@@ -70,7 +69,7 @@ trips, ~1 minute average error.
 
 Pick two zones, pick a time, get an answer. Live demo:
 
-LIVE_URL
+https://nyc-taxi-duration-predictor.streamlit.app
 
 Built with LightGBM, Streamlit, Docker, and GitHub Actions CI.
 
@@ -78,7 +77,7 @@ The most interesting finding: 30 Optuna tuning trials didn't beat the
 default hyperparameters. Wrote that into the project instead of
 hiding it.
 
-Repo: REPO_URL
+Repo: https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor
 ```
 
 ---
@@ -94,7 +93,7 @@ Use this if you're sharing on X.
 
     Pick two zones + a time. Get the duration AND the typical fare.
 
-    LIVE_URL
+    https://nyc-taxi-duration-predictor.streamlit.app
 
 2/  The pipeline:
 
@@ -126,8 +125,8 @@ Use this if you're sharing on X.
 5/  Stack: Python, Pandas, LightGBM, Optuna, MLflow, Streamlit,
     Docker, GitHub Actions.
 
-    Code: REPO_URL
-    Live: LIVE_URL
+    Code: https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor
+    Live: https://nyc-taxi-duration-predictor.streamlit.app
 
     Open to ML / data engineering roles. DMs open.
 ```
@@ -144,7 +143,7 @@ NYC Taxi Trip Duration Predictor (Python, LightGBM, Streamlit, Docker)
 End-to-end ML pipeline: cleaned 3.7M raw TLC trips down to 2.38M,
 engineered 34 features, trained and compared three models, deployed
 a 4-page interactive web app with live duration + fare estimation.
-Test MAE under 1 minute (R² 0.98). Live at LIVE_URL.
+Test MAE under 1 minute (R² 0.98). Live at https://nyc-taxi-duration-predictor.streamlit.app.
 ```
 
 ---
@@ -165,8 +164,8 @@ It's a duration + fare predictor for NYC taxi trips, trained on
 2.38 million real January 2026 records. End-to-end: data cleaning,
 feature engineering, model comparison, deployment, CI.
 
-Live demo (try it): LIVE_URL
-Code: REPO_URL
+Live demo (try it): https://nyc-taxi-duration-predictor.streamlit.app
+Code: https://github.com/reddyakilesh22-glitch/nyc-taxi-duration-predictor
 
 I document the parts that didn't work (Optuna tuning didn't beat
 defaults; linear regression has a log-target failure mode) alongside
@@ -184,7 +183,7 @@ For the top of the README, replacing the current "_coming soon_"
 placeholder.
 
 ```markdown
-**Live demo:** [LIVE_URL](LIVE_URL)
+**Live demo:** [https://nyc-taxi-duration-predictor.streamlit.app](https://nyc-taxi-duration-predictor.streamlit.app)
 ```
 
 ---

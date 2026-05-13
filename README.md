@@ -9,7 +9,7 @@
 > Predicts how long any NYC yellow-taxi trip will take, **before the meter starts**.
 > Uses only pickup zone, dropoff zone, time of day, and distance.
 
-**Live demo:** _coming soon (Streamlit Community Cloud)_
+**Live demo:** [https://nyc-taxi-duration-predictor.streamlit.app](https://nyc-taxi-duration-predictor.streamlit.app)
 
 ---
 
